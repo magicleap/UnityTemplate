@@ -1,0 +1,11 @@
+This example scene demonstrates and prescribes preferred methods for raycasting using MLRaycast.
+
+There are three raycast modes: controller, head, and eyes.
+
+We display a cursor at the current raycast hit point by subscribing to that raycast's event callback.
+
+When using eye raycast, make sure the calibration status is good for accurate results. Otherwise, run eye calibration from your device settings.
+
+<color=#dbfb76><b>Privileges</b></color>
+- WorldReconstruction
+- ControllerPose
