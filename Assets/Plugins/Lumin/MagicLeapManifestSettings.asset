@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cf5b356e131a944286fec26d7c40b4e, type: 3}
+  m_Name: MagicLeapManifestSettings
+  m_EditorClassIdentifier: 
+  m_MinimumAPILevel: 8
+  m_Privileges:
+  - name: LowLatencyLightwear
+    enabled: 1
+  - name: AddressBookBasicAccess
+    enabled: 1
+  - name: BackgroundDownload
+    enabled: 1
+  - name: BackgroundUpload
+    enabled: 1
+  - name: BatteryInfo
+    enabled: 1
+  - name: BluetoothAdapterExternalApp
+    enabled: 1
+  - name: BluetoothAdapterUser
+    enabled: 1
+  - name: BluetoothGattWrite
+    enabled: 1
+  - name: ConnectBackgroundMusicService
+    enabled: 1
+  - name: ConnectionAccess
+    enabled: 1
+  - name: ControllerPose
+    enabled: 1
+  - name: DesktopCompanion
+    enabled: 1
+  - name: DrmCertificates
+    enabled: 1
+  - name: GesturesConfig
+    enabled: 1
+  - name: GesturesSubscribe
+    enabled: 1
+  - name: HandMesh
+    enabled: 1
+  - name: IdentityRead
+    enabled: 1
+  - name: InAppPurchase
+    enabled: 1
+  - name: Internet
+    enabled: 1
+  - name: MusicService
+    enabled: 1
+  - name: NormalNotificationsUsage
+    enabled: 1
+  - name: Occlusion
+    enabled: 0
+  - name: PcfRead
+    enabled: 1
+  - name: PowerInfo
+    enabled: 1
+  - name: RegisterBackgroundMusicService
+    enabled: 1
+  - name: ScreensProvider
+    enabled: 1
+  - name: SecureBrowserWindow
+    enabled: 1
+  - name: SocialConnectionsInvitesAccess
+    enabled: 1
+  - name: AddressBookRead
+    enabled: 1
+  - name: AddressBookWrite
+    enabled: 1
+  - name: CoarseLocation
+    enabled: 1
+  - name: Expressions
+    enabled: 1
+  - name: LocalAreaNetwork
+    enabled: 1
+  - name: ObjectData
+    enabled: 1
+  - name: AudioCaptureMic
+    enabled: 1
+  - name: AudioRecognizer
+    enabled: 1
+  - name: CameraCapture
+    enabled: 1
+  - name: ComputerVision
+    enabled: 1
+  - name: ConnectionAudioCaptureStreaming
+    enabled: 1
+  - name: ConnectionVideoCaptureStreaming
+    enabled: 1
+  - name: FineLocation
+    enabled: 1
+  - name: VoiceInput
+    enabled: 1
+  - name: SocialConnectionsSelectAccess
+    enabled: 1
+  - name: WifiStatusRead
+    enabled: 1
+  - name: WorldReconstruction
+    enabled: 1
