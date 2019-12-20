@@ -1,7 +1,0 @@
-This example scene demonstrates and prescribes preferred methods for obtaining found objects.
-
-When an object is detected it will be visualized with a bounding box containing an axis indicator, along with a text label describing the content.
-
-<color=#dbfb76><b>Privileges</b></color>
-- PwFoundObjRead
-- ControllerPose

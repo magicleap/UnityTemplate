@@ -174,7 +174,7 @@ namespace MagicLeap
         /// Handles the MeshReady event, which tracks and assigns the correct mesh renderer materials.
         /// </summary>
         /// <param name="meshId">Id of the mesh that got added / upated.</param>
-        private void HandleOnMeshReady(TrackableId meshId)
+        private void HandleOnMeshReady(UnityEngine.XR.MeshId meshId)
         {
             if (_mlSpatialMapper.meshIdToGameObjectMap.ContainsKey(meshId))
             {

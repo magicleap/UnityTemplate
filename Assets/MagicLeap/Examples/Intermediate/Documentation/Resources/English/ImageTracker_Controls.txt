@@ -1,2 +1,0 @@
-<color=#dbfb76><b>Bumper</b></color>
-Toggle the visualizers.

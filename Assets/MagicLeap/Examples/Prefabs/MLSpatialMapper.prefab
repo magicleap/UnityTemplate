@@ -47,6 +47,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -139,7 +140,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_MeshPrefab: {fileID: 1434253475793312}
   m_ComputeNormals: 1
-  m_LevelOfDetail: 1
+  m_Density: 1
   m_MeshParent: {fileID: 0}
   m_MeshType: 0
   m_FillHoleLength: 1

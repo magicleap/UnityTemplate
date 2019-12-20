@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -96,6 +96,7 @@ LightmapSettings:
     m_PVRFilteringAtrousPositionSigmaAO: 1
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
   m_UseShadowmask: 0
 --- !u!196 &4
@@ -127,6 +128,16 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1240294075}
     m_Modifications:
+    - target: {fileID: -927199367670048503, guid: 3762a440ee4c3c7498f14fa6bc7270f7,
+        type: 3}
+      propertyPath: m_Name
+      value: ProPen
+      objectReference: {fileID: 0}
+    - target: {fileID: -927199367670048503, guid: 3762a440ee4c3c7498f14fa6bc7270f7,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: 3762a440ee4c3c7498f14fa6bc7270f7,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -195,16 +206,6 @@ PrefabInstance:
     - target: {fileID: -4216859302048453862, guid: 3762a440ee4c3c7498f14fa6bc7270f7,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -927199367670048503, guid: 3762a440ee4c3c7498f14fa6bc7270f7,
-        type: 3}
-      propertyPath: m_Name
-      value: ProPen
-      objectReference: {fileID: 0}
-    - target: {fileID: -927199367670048503, guid: 3762a440ee4c3c7498f14fa6bc7270f7,
-        type: 3}
-      propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5785252300943946508, guid: 3762a440ee4c3c7498f14fa6bc7270f7,
@@ -342,6 +343,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -771,12 +773,15 @@ MonoBehaviour:
     m_LineSpacing: 1
   m_Text: '<b><color=#FFFF00>Instructions</color></b>
 
-    With the tablet turned on, hold the center ring button until a
+    With the tablet turned
+    on, hold the center ring button until a
 
-    blue light flashes on the right, to the right of the Wacom logo.
+    blue light flashes on the right,
+    to the right of the Wacom logo.
 
 
-    <i>Visible in Settings/Connectivity/Bluetooth now.</i>'
+    <i>Visible in Settings/Connectivity/Bluetooth
+    now.</i>'
 --- !u!222 &478053538
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -859,10 +864,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 343170531}
     m_Modifications:
-    - target: {fileID: -8776322313466057384, guid: ea8f67e7659d1fc42b1b5c4758b3a88e,
+    - target: {fileID: -927199367670048503, guid: ea8f67e7659d1fc42b1b5c4758b3a88e,
         type: 3}
-      propertyPath: m_Enabled
-      value: 1
+      propertyPath: m_Name
+      value: Intuos_Pro
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: ea8f67e7659d1fc42b1b5c4758b3a88e,
         type: 3}
@@ -934,16 +939,16 @@ PrefabInstance:
       propertyPath: m_LocalScale.z
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: -927199367670048503, guid: ea8f67e7659d1fc42b1b5c4758b3a88e,
-        type: 3}
-      propertyPath: m_Name
-      value: Intuos_Pro
-      objectReference: {fileID: 0}
     - target: {fileID: 3240135095950345026, guid: ea8f67e7659d1fc42b1b5c4758b3a88e,
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: caaea877f3c36b44d9f38b2731216273, type: 2}
+    - target: {fileID: -8776322313466057384, guid: ea8f67e7659d1fc42b1b5c4758b3a88e,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8597485247874217347, guid: ea8f67e7659d1fc42b1b5c4758b3a88e,
         type: 3}
       propertyPath: m_LocalRotation.w
@@ -994,8 +999,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1462129510}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -1175,6 +1181,16 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1258545250}
     m_Modifications:
+    - target: {fileID: -927199367670048503, guid: f689c2f23793409438ddb3c353613c48,
+        type: 3}
+      propertyPath: m_Name
+      value: DefaultPen
+      objectReference: {fileID: 0}
+    - target: {fileID: -927199367670048503, guid: f689c2f23793409438ddb3c353613c48,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: f689c2f23793409438ddb3c353613c48,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -1243,16 +1259,6 @@ PrefabInstance:
     - target: {fileID: -4216859302048453862, guid: f689c2f23793409438ddb3c353613c48,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -927199367670048503, guid: f689c2f23793409438ddb3c353613c48,
-        type: 3}
-      propertyPath: m_Name
-      value: DefaultPen
-      objectReference: {fileID: 0}
-    - target: {fileID: -927199367670048503, guid: f689c2f23793409438ddb3c353613c48,
-        type: 3}
-      propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -1528,6 +1534,7 @@ SpriteRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:

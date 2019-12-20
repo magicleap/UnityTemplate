@@ -108,7 +108,7 @@ namespace UnityEditor.Experimental.XR.MagicLeap
             string outputProvider = Path.Combine(_projectRoot, Path.Combine("debug_lumin_clang-3.8_aarch64", "ExampleMusicProvider"));
             if (File.Exists(outputProvider))
             {
-                File.Copy(outputProvider, Path.Combine(Application.dataPath, @"../ExampleMusicProvider"), true);
+                File.Copy(outputProvider, Path.Combine(Application.dataPath, @"../Library/Mabu/ExampleMusicProvider"), true);
             }
             else
             {
@@ -125,7 +125,7 @@ namespace UnityEditor.Experimental.XR.MagicLeap
         {
             DirectoryInfo rootDI = Directory.GetParent(Application.dataPath);
             string fullyQualifiedProjectRoot = rootDI.FullName;
-            string packageFile = Path.Combine(fullyQualifiedProjectRoot, PlayerSettings.applicationIdentifier + ".package");
+            string packageFile = Path.Combine(fullyQualifiedProjectRoot, "Library", "Mabu", PlayerSettings.applicationIdentifier + ".package");
 
             if (!File.Exists(packageFile))
             {

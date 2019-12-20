@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -96,6 +96,7 @@ LightmapSettings:
     m_PVRFilteringAtrousPositionSigmaAO: 1
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
   m_UseShadowmask: 0
 --- !u!196 &4
@@ -2826,8 +2827,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1462129510}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -3546,11 +3548,11 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "This example requires the following:\n  Connected Mobile App\n  Internet
-    Connection\n  Cloudlogin\n\nHome Tap:\n  Toggle this Help screen on/off\nTouchpad:\n
-    \ Move cursor over buttons (<color=green>green</color> or <color=red>red</color>)
-    and text fields (<color=yellow>yellow</color>) to highlight them\nTap (while cursor
-    is on top):\n  Buttons to activate them\n  Text Fields to clear them\nKeyboard:\n
-    \ Enter text while hovering cursor over text field\n"
+    Connection\n  Cloudlogin\n\nHome Tap:\n  Toggle this Help screen on/off\nTouchpad:\n 
+    Move cursor over buttons (<color=green>green</color> or <color=red>red</color>)
+    and text fields (<color=yellow>yellow</color>) to highlight them\nTap (while
+    cursor is on top):\n  Buttons to activate them\n  Text Fields to clear them\nKeyboard:\n 
+    Enter text while hovering cursor over text field\n"
 --- !u!222 &2059178820
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3671,12 +3673,12 @@ PrefabInstance:
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 114179439577410040, guid: 3aae518756c7a3c46bf2b24558dc5b77,
+    - target: {fileID: 114366043123998692, guid: 3aae518756c7a3c46bf2b24558dc5b77,
         type: 3}
       propertyPath: _controllerConnectionHandler
       value: 
       objectReference: {fileID: 2004423186}
-    - target: {fileID: 114366043123998692, guid: 3aae518756c7a3c46bf2b24558dc5b77,
+    - target: {fileID: 114179439577410040, guid: 3aae518756c7a3c46bf2b24558dc5b77,
         type: 3}
       propertyPath: _controllerConnectionHandler
       value: 
