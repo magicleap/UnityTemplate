@@ -95,9 +95,9 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary/>
         public const uint MLSDK_VERSION_REVISION = 0;
         /// <summary/>
-        public const string MLSDK_VERSION_BUILD_ID = "20191028";
+        public const string MLSDK_VERSION_BUILD_ID = "20191017p";
 
         /// <summary/>
-        public const string MLSDK_VERSION_NAME = "0.23.0.20191028";
+        public const string MLSDK_VERSION_NAME = "0.23.0.20191017p";
     }
 }

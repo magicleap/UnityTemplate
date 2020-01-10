@@ -8319,7 +8319,7 @@
             
              Must be greater than zero.
             
-             MLMovement.GetDefaultSettings will set value to 0.5.
+             MLMovement.GetDefaultSettings will set this value to 0.5.
              </summary>
         </member>
         <member name="F:UnityEngine.XR.MagicLeap.MLMovementSettings.ControlDampeningFactor">
@@ -8341,7 +8341,7 @@
             
              Cannot be a negative value, but may be zero.
             
-             MLMovement.GetDefaultSettings will set this value M_PI / 6.0.
+             MLMovement.GetDefaultSettings will set this value to M_PI / 6.0.
              </summary>
         </member>
         <member name="F:UnityEngine.XR.MagicLeap.MLMovementSettings.MaximumHeadposeRotationSpeed">
@@ -8353,7 +8353,7 @@
             
              Must be greater than zero.
             
-             MLMovement.GetDefaultSettings will set this value M_PI * 5.0 / 3.0.
+             MLMovement.GetDefaultSettings will set this value to M_PI * 5.0 / 3.0.
              </summary>
         </member>
         <member name="F:UnityEngine.XR.MagicLeap.MLMovementSettings.MaximumHeadposeMovementSpeed">

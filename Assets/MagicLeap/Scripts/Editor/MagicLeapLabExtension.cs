@@ -69,6 +69,7 @@ namespace MagicLeap
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
 #if UNITY_EDITOR_WIN
             string commandToSend = openZI ? System.String.Format("/c {0}/labdriver -o {1} -pretty go-zi-module", UnityEditor.Lumin.UserBuildSettings.SDKPath, _LogFile) : System.String.Format("/c {0}/labdriver -o {1} -pretty start-gui", UnityEditor.Lumin.UserBuildSettings.SDKPath, _LogFile);
+
             startInfo.FileName = "CMD.exe";
             startInfo.UseShellExecute = true;
 #elif UNITY_EDITOR_OSX

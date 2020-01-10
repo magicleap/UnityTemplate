@@ -1,2 +1,0 @@
-<color=#dbfb76><b>Bumper</b></color>
-Captures an image and displays it. This can take up to a second.
