@@ -1,2 +1,0 @@
-<color=#dbfb76><b>Bumper</b></color>
-Cycle through the raycast modes: controller, head, and eyes.
