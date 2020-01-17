@@ -60,9 +60,6 @@ crashlytics-build.properties
 # VS Code
 .vscode/
 
-# Unity Project Settings (cert)
-/ProjectSettings/ProjectSettings.asset
-
 # Unity Artifacts
 *.package
 *.mpk
