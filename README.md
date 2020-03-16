@@ -12,7 +12,7 @@ Universal Render Pipeline - KitchenSink
 
 ### MLSDK
 
-v0.23.0
+v0.24.0
 
 ### LuminOS
 
