@@ -33,13 +33,13 @@
 // %BANNER_END%
 
 // Current Version
-#define MLSDK_0_24_0
+#define MLSDK_0_24_2
 #define MLSDK_0_24
 #define MLSDK_0
 
 // Required Version Information
 // Major_Minor_Revision
-#define MLSDK_0_24_0_OR_NEWER
+#define MLSDK_0_24_2_OR_NEWER
 #define MLSDK_0_23_0_OR_NEWER
 #define MLSDK_0_22_0_OR_NEWER
 #define MLSDK_0_21_0_OR_NEWER
@@ -95,11 +95,11 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary/>
         public const uint MLSDK_VERSION_MINOR = 24;
         /// <summary/>
-        public const uint MLSDK_VERSION_REVISION = 0;
+        public const uint MLSDK_VERSION_REVISION = 2;
         /// <summary/>
-        public const string MLSDK_VERSION_BUILD_ID = "20200310";
+        public const string MLSDK_VERSION_BUILD_ID = "20200716";
 
         /// <summary/>
-        public const string MLSDK_VERSION_NAME = "0.24.0.20200310";
+        public const string MLSDK_VERSION_NAME = "0.24.2.20200716";
     }
 }

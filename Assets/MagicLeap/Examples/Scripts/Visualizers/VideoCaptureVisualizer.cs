@@ -61,6 +61,13 @@ namespace MagicLeap
             #endif
 
             _screenRenderer = _screen.GetComponent<Renderer>();
+            if(_screenRenderer == null)
+            {
+                Debug.LogError("Error: VideoCaptureVisualizer._screen does not have a Renderer component, disabling script.");
+                enabled = false;
+                return;
+            }
+            _screenRenderer.enabled = false;
         }
 
         void OnDestroy()
@@ -82,11 +89,18 @@ namespace MagicLeap
         }
 
         /// <summary>
-        /// Disables rendering of the video.
+        /// Disables rendering of the video and audio.
         /// </summary>
         public void DisablePreview()
         {
             _screenRenderer.enabled = false;
+            _recordingIndicator.SetActive(false);
+            #if PLATFORM_LUMIN
+            if (_mediaPlayer.IsPlaying)
+            {
+                _mediaPlayer.Stop();
+            }
+            #endif
         }
 
         /// <summary>

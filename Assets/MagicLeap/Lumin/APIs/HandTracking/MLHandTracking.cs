@@ -269,6 +269,7 @@ namespace UnityEngine.XR.MagicLeap
             if (isSafeToAccessManagedObjects)
             {
                 // The KeyPoseManager object will not receive any more updates from Left or Right hands.
+                this.keyposeManager.Dispose();
                 this.keyposeManager = null;
                 this.left = null;
                 this.right = null;
@@ -283,6 +284,7 @@ namespace UnityEngine.XR.MagicLeap
             {
                 MLPluginLog.Error("MLHandTracking.CleanupAPI failed. Reason: API symbols not found");
             }
+
         }
         #endif // DOXYGENSHOULDSKIPTHIS
 

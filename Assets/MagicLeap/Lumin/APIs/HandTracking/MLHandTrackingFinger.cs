@@ -85,7 +85,7 @@ namespace UnityEngine.XR.MagicLeap
                 // Make sure the correct number of bones are in the list.
                 if (bones.Count != 5)
                 {
-                    Debug.LogError("Error: Finger the number of bones returned was invalid.");
+                    // Silent return due to number of valid cases where this may happen so we don't log it.
                     return;
                 }
 
