@@ -22,7 +22,7 @@ v0.24.1
 
 ## Instructions After Downloading
 
-1) Using Unity Hub, download Unity 2019.3.x and make sure Lumin support is checked during installation
+1) Using Unity Hub, download Unity 2020.1.x and make sure Lumin support is checked during installation
 2) `ADD` the project using Unity Hub
 3) Open the project using Unity Hub
 4) Under File > Build Settings, make sure the build target is Lumin
