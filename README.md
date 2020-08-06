@@ -4,15 +4,17 @@
 
 Hello, Cube!
 
-## Versions
-
 ### Unity
 
-2019.3.x
+2020.1.x
+
+### Magic Leap Unity Package
+
+v0.24.2
 
 ### MLSDK
 
-v0.24.0
+v0.24.1
 
 ### LuminOS
 

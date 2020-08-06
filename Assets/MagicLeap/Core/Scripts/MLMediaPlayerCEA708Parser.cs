@@ -238,7 +238,7 @@ namespace MagicLeap
                     winBitmap = (int)event_708.Object;
                     for (int i = 0; i < MLMediaPlayer.Cea708CaptionWindowsMax; i++)
                     {
-                        if (((winBitmap & (1 << i)) == 0) || (i == 0 || i == 1))
+                        if (((winBitmap & (1 << i)) == 0) && (i == 0 || i == 1))
                         {
                             _cea708Strings[i] = string.Empty;
                         }

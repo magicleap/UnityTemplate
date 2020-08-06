@@ -27,7 +27,7 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary>
         /// Manages what key poses are enabled and exposes the events.
         /// </summary>
-        public partial class KeyposeManager
+        public partial class KeyposeManager : IDisposable
         {
             /// <summary>
             /// The array of hands to account for (just two).
@@ -65,13 +65,7 @@ namespace UnityEngine.XR.MagicLeap
             /// </summary>
             ~KeyposeManager()
             {
-                this.DisableAllKeyPoses();
-
-                if (MLDevice.GestureSubsystem != null)
-                {
-                    MLDevice.GestureSubsystem.onKeyPoseGestureChanged -= this.HandleOnKeyPoseChanged;
-                    MLDevice.UnregisterGestureSubsystem();
-                }
+                this.Cleanup();
             }
 
             /// <summary>
@@ -214,6 +208,15 @@ namespace UnityEngine.XR.MagicLeap
             }
 
             /// <summary>
+            /// Used to clean up the object immediately instead of relying on it's destructor.
+            /// </summary>
+            public void Dispose()
+            {
+                this.Cleanup();
+                GC.SuppressFinalize(this);
+            }
+
+            /// <summary>
             /// Sets the values of key poses given by a raw byte array representing a list of key poses.
             /// </summary>
             /// <param name="keyPoses">The raw byte array of key poses to set.</param>
@@ -291,6 +294,20 @@ namespace UnityEngine.XR.MagicLeap
 
                     // Invoke the event from KeyPoseManager.
                     this.OnKeyPoseEnd?.Invoke((MLHandTracking.HandKeyPose)gestureEvent.keyPose, (MLHandTracking.HandType)gestureEvent.hand);
+                }
+            }
+
+            /// <summary>
+            /// Disables key poses and unregisters from the gesture subsystem.
+            /// </summary>
+            private void Cleanup()
+            {
+                this.DisableAllKeyPoses();
+
+                if (MLDevice.GestureSubsystem != null)
+                {
+                    MLDevice.GestureSubsystem.onKeyPoseGestureChanged -= this.HandleOnKeyPoseChanged;
+                    MLDevice.UnregisterGestureSubsystem();
                 }
             }
         }

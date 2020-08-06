@@ -28,8 +28,6 @@ namespace MagicLeap
         [SerializeField, Tooltip("The text used to display status information for the example..")]
         private Text _statusText = null;
 
-        private const float TRIGGER_DOWN_MIN_VALUE = 0.2f;
-
         // UpdateLED - Constants
         private const float HALF_HOUR_IN_DEGREES = 15.0f;
         private const float DEGREES_PER_HOUR = 12.0f / 360.0f;
