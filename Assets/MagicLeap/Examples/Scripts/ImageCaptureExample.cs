@@ -80,22 +80,11 @@ namespace MagicLeap
             _previewObject.SetActive(false);
 
             // Before enabling the Camera, the scene must wait until the privilege has been granted.
-            MLResult result = MLPrivilegesStarterKit.Start();
-            #if PLATFORM_LUMIN
-            if (!result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: ImageCaptureExample failed starting MLPrivilegesStarterKit, disabling script. Reason: {0}", result);
-                enabled = false;
-                return;
-            }
-            #endif
-
-            result = MLPrivilegesStarterKit.RequestPrivilegesAsync(HandlePrivilegesDone, MLPrivileges.Id.CameraCapture);
+            MLResult result = MLPrivilegesStarterKit.RequestPrivilegesAsync(HandlePrivilegesDone, MLPrivileges.Id.CameraCapture);
             #if PLATFORM_LUMIN
             if (!result.IsOk)
             {
                 Debug.LogErrorFormat("Error: ImageCaptureExample failed requesting privileges, disabling script. Reason: {0}", result);
-                MLPrivilegesStarterKit.Stop();
                 enabled = false;
                 return;
             }
@@ -167,8 +156,6 @@ namespace MagicLeap
             if (_privilegesBeingRequested)
             {
                 _privilegesBeingRequested = false;
-
-                MLPrivilegesStarterKit.Stop();
             }
         }
 
@@ -219,17 +206,10 @@ namespace MagicLeap
             #if PLATFORM_LUMIN
             lock (_cameraLockObject)
             {
-                MLResult result = MLCamera.Start();
+                MLResult result = MLCamera.Connect();
                 if (result.IsOk)
                 {
-                    result = MLCamera.Connect();
                     _isCameraConnected = true;
-                }
-                else
-                {
-                    Debug.LogErrorFormat("Error: ImageCaptureExample failed starting MLCamera, disabling script. Reason: {0}", result);
-                    enabled = false;
-                    return;
                 }
             }
             #endif
@@ -248,7 +228,6 @@ namespace MagicLeap
                     MLCamera.Disconnect();
                     // Explicitly set to false here as the disconnect was attempted.
                     _isCameraConnected = false;
-                    MLCamera.Stop();
                 }
             }
             #endif
@@ -285,7 +264,6 @@ namespace MagicLeap
         private void HandlePrivilegesDone(MLResult result)
         {
             _privilegesBeingRequested = false;
-            MLPrivilegesStarterKit.Stop();
 
             #if PLATFORM_LUMIN
             if (result != MLResult.Code.PrivilegeGranted)

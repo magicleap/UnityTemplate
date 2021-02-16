@@ -15,29 +15,18 @@ namespace UnityEngine.XR.MagicLeap
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
-    #if PLATFORM_LUMIN
-    using UnityEngine.XR.MagicLeap.Native;
-    #endif
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Functionality to validate or query privileges from the system.
     /// </summary>
-    public sealed partial class MLPrivileges : MLAPISingleton<MLPrivileges>
+    public sealed partial class MLPrivileges : MLAutoAPISingleton<MLPrivileges>
     {
         #if PLATFORM_LUMIN
         /// <summary>
         /// A dictionary of pending privilege requests.
         /// </summary>
         private Dictionary<MLPrivileges.Id, RequestPrivilegeQuery> currentRequests = new Dictionary<MLPrivileges.Id, RequestPrivilegeQuery>();
-
-        /// <summary>
-        /// Prevents a default instance of the <see cref="MLPrivileges"/> class from being created.
-        /// </summary>
-        private MLPrivileges()
-        {
-            this.DllNotFoundError = "MLPrivileges API is currently available only on device.";
-        }
 
         /// <summary>
         /// The callback delegate for privilege requests.
@@ -127,7 +116,7 @@ namespace UnityEngine.XR.MagicLeap
             BluetoothAdapterUser = 106,
 
             /// <summary>
-            /// Bluetooth Gatt Client Write
+            /// Bluetooth <c>Gatt</c> Client Write
             /// Type: AutoGranted
             /// </summary>
             BluetoothGattWrite = 108,
@@ -187,13 +176,6 @@ namespace UnityEngine.XR.MagicLeap
             PcfRead = 201,
 
             /// <summary>
-            /// Read found objects from Passable World.
-            /// Type: AutoGranted
-            /// </summary>
-            [System.Obsolete("Deprecated and scheduled for removal.", true)]
-            PwFoundObjRead = 201,
-
-            /// <summary>
             /// Post notifications for users to see, dismiss own notifications, listen for own notification events.
             /// Type: AutoGranted
             /// </summary>
@@ -210,13 +192,6 @@ namespace UnityEngine.XR.MagicLeap
             /// Type: AutoGranted
             /// </summary>
             ControllerPose = 263,
-
-            /// <summary>
-            /// Create channels in the screens framework'.
-            /// Type: AutoGranted
-            /// </summary>
-            [System.Obsolete("Deprecated and scheduled for removal.", true)]
-            ScreensProvider = 264,
 
             /// <summary>
             /// Subscribe to gesture hand mask and config data.
@@ -312,7 +287,13 @@ namespace UnityEngine.XR.MagicLeap
             /// Access found object data from object-recognition pipeline.
             /// Type: Sensitive
             /// </summary>
-            ObjectData = 394
+            ObjectData = 394,
+
+            /// <summary>
+            /// Allow applications to capture lightwear and lightpack IMU samples
+            /// Type: AutoGranted
+            /// </summary>
+            ImuCapture = 395
         }
 
         /// <summary>
@@ -388,20 +369,7 @@ namespace UnityEngine.XR.MagicLeap
             ObjectData = MLPrivileges.Id.ObjectData
         }
 
-        #if PLATFORM_LUMIN
-        /// <summary>
-        /// Privileges API, must be called
-        /// </summary>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if the privilege system startup succeeded.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system failed to startup.
-        /// </returns>
-        public static MLResult Start()
-        {
-            CreateInstance();
-            return MLPrivileges.BaseStart();
-        }
-
+#if PLATFORM_LUMIN
         /// <summary>
         /// Checks whether the application has the specified privileges.
         /// This does not solicit consent from the end-user.
@@ -414,28 +382,11 @@ namespace UnityEngine.XR.MagicLeap
         /// </returns>
         public static MLResult CheckPrivilege(MLPrivileges.Id privilegeId)
         {
-            try
-            {
-                if (MLPrivileges.IsValidInstance())
-                {
-                    MLResult.Code checkPrivilegeResult = NativeBindings.MLPrivilegesCheckPrivilege(privilegeId);
-                    return (checkPrivilegeResult == MLResult.Code.PrivilegeNotGranted) ? MLResult.Create(checkPrivilegeResult, "Privilege Denied or Not Yet Requested.") : MLResult.Create(checkPrivilegeResult);
-                }
-                else
-                {
-                    MLPluginLog.ErrorFormat("MLPrivileges.CheckPrivilege failed. Reason: No Instance for MLPrivileges.");
-                    return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges.CheckPrivilege failed. Reason: No Instance for MLPrivileges.");
-                }
-            }
-            catch (System.EntryPointNotFoundException)
-            {
-                MLPluginLog.Error("MLPrivileges.CheckPrivilege failed. Reason: API symbols not found");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges.CheckPrivilege failed. Reason: API symbols not found.");
-            }
+            return MLResult.Create(Instance.CheckPrivilegeInternal(privilegeId));
         }
 
         /// <summary>
-        /// Requests the specified privileges. This may possibly solicit consent from the end-user.
+        /// Requests the specified privilege. This may possibly solicit consent from the end-user.
         /// </summary>
         /// <param name="privilegeId">The privilege to request.</param>
         /// <returns>
@@ -445,113 +396,87 @@ namespace UnityEngine.XR.MagicLeap
         /// </returns>
         public static MLResult RequestPrivilege(MLPrivileges.Id privilegeId)
         {
-            try
-            {
-                if (MLPrivileges.IsValidInstance())
-                {
-                    MLResult.Code requestPrivilegeResult = NativeBindings.MLPrivilegesRequestPrivilege(privilegeId);
-
-                    MLResult result = MLResult.Create(requestPrivilegeResult);
-
-                    if (result.Result != MLResult.Code.PrivilegeGranted)
-                    {
-                        MLPluginLog.ErrorFormat("MLPrivileges.RequestPrivilege failed to request {0}. Reason: {1}", privilegeId, result);
-                    }
-
-                    return result;
-                }
-                else
-                {
-                    MLPluginLog.ErrorFormat("MLPrivileges.RequestPrivilege failed. Reason: No Instance for MLPrivileges.");
-                    return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges.RequestPrivilege failed. Reason: No Instance for MLPrivileges.");
-                }
-            }
-            catch (System.EntryPointNotFoundException)
-            {
-                MLPluginLog.Error("MLPrivileges.RequestPrivilege failed. Reason: API symbols not found");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges.RequestPrivilege failed. Reason: API symbols not found.");
-            }
+            return MLResult.Create(Instance.RequestPrivilegeInternal(privilegeId));
         }
 
         /// <summary>
-        /// Request the specified privileges. This may solicit consent from the end-user.
-        /// Note: The asynchronous callback occurs within the main thread.
+        /// Request the specified privilege asynchronously. This may solicit consent from the end-user.
+        /// This async override uses Tasks instead of a callback.
         /// </summary>
         /// <param name="privilegeId">The privilege to request.</param>
-        /// <param name="callback">Callback to be executed when the privilege request has completed.</param>
         /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if the privilege request is in progress.
-        /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if the callback is null.
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system was not started.
-        /// Callback MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
-        /// Callback MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
         /// </returns>
-        public static MLResult RequestPrivilegeAsync(MLPrivileges.Id privilegeId, CallbackDelegate callback)
+        public static async Task<MLResult> RequestPrivilegeAsync(MLPrivileges.Id privilegeId)
         {
-            try
+            return await Instance.RequestPrivilegeAsyncInternal(privilegeId);
+        }
+
+        /// <summary>
+        /// Requests the specified privileges. This may possibly solicit consent from the end-user.
+        /// </summary>
+        /// <param name="privilegeIds">The privileges to request.</param>
+        /// <returns>
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
+        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system was not started.
+        /// </returns>
+        public static MLResult RequestPrivileges(params MLPrivileges.Id[] privilegeIds)
+        {
+#if PLATFORM_LUMIN
+            MLResult result = new MLResult();
+
+            foreach (MLPrivileges.Id privilegeId in privilegeIds)
             {
-                if (MLPrivileges.IsValidInstance())
+                result = CheckPrivilege(privilegeId);
+                if (result.Result == MLResult.Code.PrivilegeGranted)
                 {
-                    if (callback == null)
-                    {
-                        return MLResult.Create(MLResult.Code.InvalidParam, "MLPrivileges.RequestPrivilegeAsync failed. Reason: Must send a valid callback.");
-                    }
-
-                    if (!_instance.currentRequests.ContainsKey(privilegeId))
-                    {
-                        IntPtr newRequest = IntPtr.Zero;
-
-                        MLResult.Code resultCode = NativeBindings.MLPrivilegesRequestPrivilegeAsync(privilegeId, ref newRequest);
-                        if (resultCode == MLResult.Code.Ok)
-                        {
-                            RequestPrivilegeQuery newQuery = new RequestPrivilegeQuery(callback, newRequest, privilegeId);
-                            _instance.currentRequests.Add(privilegeId, newQuery);
-                        }
-
-                        return MLResult.Create(resultCode);
-                    }
-                    else
-                    {
-                        return MLResult.Create(MLResult.Code.Ok);
-                    }
+                    continue;
                 }
-                else
+
+                result = RequestPrivilege(privilegeId);
+                if (result.Result != MLResult.Code.PrivilegeGranted)
                 {
-                    MLPluginLog.ErrorFormat("MLPrivileges.RequestPrivilegeAsync failed. Reason: No Instance for MLPrivileges.");
-                    return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges.RequestPrivilegeAsync failed. Reason: No Instance for MLPrivileges.");
+                    return result;
                 }
             }
-            catch (System.EntryPointNotFoundException)
+#endif
+            return result;
+        }
+
+        /// <summary>
+        /// Request the specified privileges asynchronously. This may possibly solicit consent from the end-user.
+        /// </summary>
+        /// <param name="privilegeIds">The privileges to request.</param>
+        /// <returns>
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
+        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system was not started.
+        /// </returns>        
+        public static async Task<MLResult> RequestPrivilegesAsync(params MLPrivileges.Id[] privilegeIds)
+        {
+            foreach (MLPrivileges.Id privilegeId in privilegeIds)
             {
-                MLPluginLog.Error("MLPrivileges.RequestPrivilegeAsync failed. Reason: API symbols not found");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges.RequestPrivilegeAsync failed. Reason: API symbols not found.");
+                Task<MLResult> task = await RequestPrivilegeAsync(privilegeId);
+                if (task.Result.Result != MLResult.Code.PrivilegeGranted)
+                {
+                    return task.Result;
+                }
             }
+
+            return MLResult.Create(MLResult.Code.PrivilegeGranted);
         }
 
         /// <summary>
         /// Gets the result string for a MLResult.Code.
         /// </summary>
-        /// <param name="result">The MLResult.Code to be requested.</param>
+        /// <param name="resultCode">The MLResult.Code to be requested.</param>
         /// <returns>A pointer to the result string.</returns>
-        internal static IntPtr GetResultString(MLResult.Code result)
+        internal static IntPtr GetResultString(MLResult.Code resultCode)
         {
-            try
-            {
-                if (MLPrivileges.IsValidInstance())
-                {
-                    return NativeBindings.MLPrivilegesGetResultString(result);
-                }
-                else
-                {
-                    MLPluginLog.ErrorFormat("MLPrivileges.GetResultString failed. Reason: No Instance for MLPrivileges.");
-                }
-            }
-            catch (System.EntryPointNotFoundException)
-            {
-                MLPluginLog.Error("MLPrivileges.GetResultString failed. Reason: API symbols not found");
-            }
-
-            return IntPtr.Zero;
+            return Instance.GetResultStringInternal(resultCode);
         }
 
         /// <summary>
@@ -561,34 +486,22 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if the privilege system startup succeeded.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system failed to startup.
         /// </returns>
-        protected override MLResult StartAPI()
+        protected override MLResult.Code StartAPI()
         {
-            return MLResult.Create(NativeBindings.MLPrivilegesStartup());
+            return NativeBindings.MLPrivilegesStartup(); 
         }
 
         /// <summary>
-        /// Cleans up unmanaged memory.
+        /// Cleans objects and stops the API.
         /// </summary>
-        /// <param name="isSafeToAccessManagedObjects">Boolean that tells if it is safe to clear managed memory</param>
-        protected override void CleanupAPI(bool isSafeToAccessManagedObjects)
+        /// <returns>
+        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if the privilege system shutdown succeeded.
+        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system failed to shutdown.
+        /// </returns>
+        protected override MLResult.Code StopAPI()
         {
-            try
-            {
-                if (isSafeToAccessManagedObjects)
-                {
-                    _instance.currentRequests.Clear();
-                }
-
-                MLResult.Code resultCode = NativeBindings.MLPrivilegesShutdown();
-                if (resultCode != MLResult.Code.Ok)
-                {
-                    MLPluginLog.ErrorFormat("MLPrivileges.CleanupAPI failed to shutdown. Reason: {0}", MLResult.CodeToString(resultCode));
-                }
-            }
-            catch (System.EntryPointNotFoundException)
-            {
-                MLPluginLog.Error("MLPrivileges.CleanupAPI failed. Reason: API symbols not found");
-            }
+            Instance.currentRequests.Clear();
+            return NativeBindings.MLPrivilegesShutdown();
         }
 
         /// <summary>
@@ -600,14 +513,62 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
-        /// static instance of the MLPrivileges class
+        /// Checks whether the application has the specified privileges.
+        /// This does not solicit consent from the end-user.
         /// </summary>
-        private static void CreateInstance()
+        /// <param name="privilegeId">The privilege to check for access.</param>
+        /// <returns>
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
+        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system was not started.
+        /// </returns>
+        private MLResult.Code CheckPrivilegeInternal(MLPrivileges.Id privilegeId)
         {
-            if (!MLPrivileges.IsValidInstance())
+            return NativeBindings.MLPrivilegesCheckPrivilege(privilegeId);
+        }
+
+        /// <summary>
+        /// Requests the specified privileges. This may possibly solicit consent from the end-user.
+        /// </summary>
+        /// <param name="privilegeId">The privilege to request.</param>
+        /// <returns>
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
+        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system was not started.
+        /// </returns>
+        private MLResult.Code RequestPrivilegeInternal(MLPrivileges.Id privilegeId)
+        {
+            return NativeBindings.MLPrivilegesRequestPrivilege(privilegeId);
+        }
+
+        /// <summary>
+        /// Request the specified privilege asynchronously. This may solicit consent from the end-user.
+        /// This async override uses Tasks instead of a callback.
+        /// </summary>
+        /// <param name="privilegeId">The privilege to request.</param>
+        /// <returns>
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
+        /// MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
+        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system was not started.
+        /// </returns>
+        private async Task<MLResult> RequestPrivilegeAsyncInternal(MLPrivileges.Id privilegeId)
+        {
+            var taskCompletionSource = new TaskCompletionSource<MLResult>();
+            if (this.currentRequests.ContainsKey(privilegeId))
             {
-                MLPrivileges._instance = new MLPrivileges();
+                return MLResult.Create(MLResult.Code.Ok);
             }
+
+            IntPtr newRequest = IntPtr.Zero;
+            MLResult.Code resultCode = NativeBindings.MLPrivilegesRequestPrivilegeAsync(privilegeId, ref newRequest);
+            if (!MLResult.IsOK(resultCode))
+            {
+                return MLResult.Create(resultCode);
+            }
+
+            RequestPrivilegeQuery newQuery = new RequestPrivilegeQuery((result, id) => taskCompletionSource.SetResult(result), newRequest, privilegeId);
+            this.currentRequests.Add(privilegeId, newQuery);
+            return await taskCompletionSource.Task;
         }
 
         /// <summary>
@@ -633,6 +594,16 @@ namespace UnityEngine.XR.MagicLeap
             {
                 MLPluginLog.Error("MLPrivileges.ProcessPendingQueries failed. Reason: API symbols not found");
             }
+        }
+
+        /// <summary>
+        /// Gets the result string for a MLResult.Code.
+        /// </summary>
+        /// <param name="resultCode">The MLResult.Code to be requested.</param>
+        /// <returns>A pointer to the result string.</returns>
+        private IntPtr GetResultStringInternal(MLResult.Code resultCode)
+        {
+            return NativeBindings.MLPrivilegesGetResultString(resultCode);
         }
 
         /// <summary>

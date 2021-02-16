@@ -1,0 +1,5 @@
+<color=#dbfb76><b>Bumper</b></color>
+-Cycle through which aruco dictionary the tracker is looking for.
+
+<color=#dbfb76><b>Trigger</b></color>
+-Toggle the aruco tracker.

@@ -89,17 +89,9 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static MLResult Enable()
         {
-            #if PLATFORM_LUMIN
-            if (MLImageTracker.IsStarted)
-            {
-                _result = MLImageTracker.Enable();
-            }
-
-            else
-            {
-                _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLImageTracker was not started.");
-            }
-            #endif
+#if PLATFORM_LUMIN
+            _result = MLImageTracker.Enable();
+#endif
 
             return _result;
         }
@@ -109,17 +101,9 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static MLResult Disable()
         {
-            #if PLATFORM_LUMIN
-            if (MLImageTracker.IsStarted)
-            {
-                _result = MLImageTracker.Disable();
-            }
-
-            else
-            {
-                _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLImageTracker was not started.");
-            }
-            #endif
+#if PLATFORM_LUMIN
+            _result = MLImageTracker.Disable();
+#endif
 
             return _result;
         }
@@ -129,22 +113,14 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static bool GetTrackerStatus()
         {
-            #if PLATFORM_LUMIN
-            if (MLImageTracker.IsStarted)
-            {
-                return MLImageTracker.GetTrackerStatus();
-            }
-            else
-            {
-                Debug.LogError("Error: MLImageTrackerStarterKit.GetTrackerStatus failed because MLImageTracker was not started.");
-                return false;
-            }
-            #else
+#if PLATFORM_LUMIN
+            return MLImageTracker.GetTrackerStatus();
+#else
             return false;
-            #endif
+#endif
         }
 
-        #pragma warning disable 649
+#pragma warning disable 649
         private static MLResult _result;
         #pragma warning restore 649
 
@@ -155,25 +131,11 @@ namespace MagicLeap.Core.StarterKit
         public static MLResult Start()
         {
             #if PLATFORM_LUMIN
-            _result = MLPrivilegesStarterKit.Start();
-            if (!_result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLImageTrackerStarterKit failed when calling MLPrivilegesStarterKit.Start. Reason: {0}", _result);
-                return _result;
-            }
-
-            _result = MLPrivilegesStarterKit.RequestPrivileges(MLPrivileges.Id.CameraCapture);
+            _result = MLPrivileges.RequestPrivileges(MLPrivileges.Id.CameraCapture);
             if (_result.Result != MLResult.Code.PrivilegeGranted)
             {
                 Debug.LogErrorFormat("Error: MLImageTrackerStarterKit failed requesting privileges. Reason: {0}", _result);
                 return _result;
-            }
-            MLPrivilegesStarterKit.Stop();
-
-            _result = MLImageTracker.Start();
-            if (!_result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLImageTrackerStarterKit failed starting MLImageTracker. Reason: {0}", _result);
             }
             #endif
 
@@ -181,21 +143,10 @@ namespace MagicLeap.Core.StarterKit
         }
 
         /// <summary>
-        /// Stops MLImageTracker.
+        /// Stop.
         /// </summary>
         public static void Stop()
         {
-            #if PLATFORM_LUMIN
-            if (MLImageTracker.IsStarted)
-            {
-                MLImageTracker.Stop();
-            }
-
-            else
-            {
-                Debug.LogError("Error: MLImageTrackerStarterKit.Stop failed because MLImageTracker was not started.");
-            }
-            #endif
         }
 
         #if PLATFORM_LUMIN
@@ -204,28 +155,19 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static MLImageTargetStarterKit AddTarget(string id, Texture2D texture, float longerDimension, MLImageTracker.Target.OnImageResultDelegate callback, bool isStationary = false)
         {
-            if (MLImageTracker.IsStarted)
+            MLImageTargetStarterKit newTargetStarterKit = new MLImageTargetStarterKit();
+            callback += newTargetStarterKit.HandleStatusUpdates;
+
+            MLImageTracker.Target newTarget = MLImageTracker.AddTarget(id, texture, longerDimension, callback, isStationary);
+
+            if (newTarget == null)
             {
-                MLImageTargetStarterKit newTargetStarterKit = new MLImageTargetStarterKit();
-                callback += newTargetStarterKit.HandleStatusUpdates;
-
-                MLImageTracker.Target newTarget = MLImageTracker.AddTarget(id, texture, longerDimension, callback, isStationary);
-
-                if (newTarget == null)
-                {
-                    Debug.LogErrorFormat("MLImageTrackerStarterKit.AddTarget was unable to create the new image target with id: {0}.", id);
-                    return null;
-                }
-
-                newTargetStarterKit.InitializeWithTarget(newTarget);
-                return newTargetStarterKit;
-            }
-
-            else
-            {
-                Debug.LogError("Error: MLImageTrackerStarterKit.AddTarget failed because MLImageTracker was not started.");
+                Debug.LogErrorFormat("MLImageTrackerStarterKit.AddTarget was unable to create the new image target with id: {0}.", id);
                 return null;
             }
+
+            newTargetStarterKit.InitializeWithTarget(newTarget);
+            return newTargetStarterKit;
         }
         #endif
 
@@ -234,19 +176,11 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static bool RemoveTarget(string id)
         {
-            #if PLATFORM_LUMIN
-            if (MLImageTracker.IsStarted)
-            {
-                return MLImageTracker.RemoveTarget(id);
-            }
-            else
-            {
-                Debug.LogError("Error: MLImageTrackerStarterKit.RemoveTarget failed because MLImageTracker was not started.");
-                return false;
-            }
-            #else
+#if PLATFORM_LUMIN
+            return MLImageTracker.RemoveTarget(id);
+#else
             return false;
-            #endif
+#endif
         }
     }
 }

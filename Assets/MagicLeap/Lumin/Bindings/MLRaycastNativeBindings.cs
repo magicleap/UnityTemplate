@@ -19,7 +19,7 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Sends requests to create Rays intersecting world geometry and returns results through callbacks.
     /// </summary>
-    public partial class MLRaycast : MLAPISingleton<MLRaycast>
+    public partial class MLRaycast
     {
         /// <summary>
         /// See <c>ml_raycast.h</c> for additional comments

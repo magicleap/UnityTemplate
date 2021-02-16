@@ -65,7 +65,7 @@ namespace UnityEngine.XR.MagicLeap
             {
                 if (this.UnregisterUpdate)
                 {
-                    MLDevice.Unregister(this.Update);
+                    MLDevice.UnregisterUpdate(this.Update);
                 }
             }
 
@@ -193,7 +193,7 @@ namespace UnityEngine.XR.MagicLeap
                 }
 
                 this.Status = PageStatus.Pending;
-                MLDevice.Register(this.Update);
+                MLDevice.RegisterUpdate(this.Update);
                 this.UnregisterUpdate = true;
 
                 return MLResult.Create(MLResult.Code.Ok);
@@ -255,7 +255,7 @@ namespace UnityEngine.XR.MagicLeap
 
                 this.TotalHits = this.listResult.TotalHits;
                 this.UnregisterUpdate = false;
-                MLDevice.Unregister(this.Update);
+                MLDevice.UnregisterUpdate(this.Update);
             }
 
             /// <summary>
@@ -273,7 +273,7 @@ namespace UnityEngine.XR.MagicLeap
                 this.PageFailedAction?.Invoke(this, MLResult.Create(resultCode));
 
                 this.UnregisterUpdate = false;
-                MLDevice.Unregister(this.Update);
+                MLDevice.UnregisterUpdate(this.Update);
             }
             #endif
         }

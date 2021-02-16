@@ -22,7 +22,8 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Manages the input state for controllers, MCA and tablet devices.
     /// </summary>
-    public partial class MLInput : MLAPISingleton<MLInput>
+    [RequireXRLoader]
+    public partial class MLInput : MLAutoAPISingleton<MLInput>
     {
         #if PLATFORM_LUMIN
         /// <summary>
@@ -33,7 +34,7 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary>
         /// Cached value of are we in the Editor for later use on shutdown
         /// </summary>
-        private bool isInEditor = false;
+        private bool isInEditor = Application.isEditor;
 
         /// <summary>
         /// The internal handle attached to this instance of MLInput
@@ -55,7 +56,7 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary>
         /// The input configuration to send to MLInputCreate
         /// </summary>
-        private Configuration config;
+        private Configuration config = new Configuration(true);
 
         /// <summary>
         /// The configuration for the controllers.
@@ -66,16 +67,6 @@ namespace UnityEngine.XR.MagicLeap
         /// Stored a cached list of the device controllers.
         /// </summary>
         private List<InputDevice> cachedDevices = new List<InputDevice>();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MLInput"/> class.
-        /// </summary>
-        /// <param name="config">An instance of the configuration file to apply.</param>
-        private MLInput(Configuration config)
-        {
-            this.config = config;
-            this.isInEditor = Application.isEditor;
-        }
 
         /// <summary>
         /// A delegate for the touchpad gesture events.
@@ -206,80 +197,216 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary>
         /// This callback will be invoked whenever a detected touchpad gesture begins.
         /// </summary>
-        public static event ControllerTouchpadGestureDelegate OnControllerTouchpadGestureStart = delegate { };
+        public static event ControllerTouchpadGestureDelegate OnControllerTouchpadGestureStart
+        {
+            add => Instance.onControllerTouchpadGestureStart += value;
+            remove => Instance.onControllerTouchpadGestureStart -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked as a detected touchpad gesture continues.
         /// </summary>
-        public static event ControllerTouchpadGestureDelegate OnControllerTouchpadGestureContinue = delegate { };
+        public static event ControllerTouchpadGestureDelegate OnControllerTouchpadGestureContinue
+        {
+            add => Instance.onControllerTouchpadGestureContinue += value;
+            remove => Instance.onControllerTouchpadGestureContinue -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a detected touchpad gesture ends.
         /// </summary>
-        public static event ControllerTouchpadGestureDelegate OnControllerTouchpadGestureEnd = delegate { };
+        public static event ControllerTouchpadGestureDelegate OnControllerTouchpadGestureEnd
+        {
+            add => Instance.onControllerTouchpadGestureEnd += value;
+            remove => Instance.onControllerTouchpadGestureEnd -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a button press is detected.
         /// </summary>
-        public static event ControllerButtonDelegate OnControllerButtonDown = delegate { };
+        public static event ControllerButtonDelegate OnControllerButtonDown
+        {
+            add => Instance.onControllerButtonDown += value;
+            remove => Instance.onControllerButtonDown -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a button release is detected.
         /// </summary>
-        public static event ControllerButtonDelegate OnControllerButtonUp = delegate { };
+        public static event ControllerButtonDelegate OnControllerButtonUp
+        {
+            add => Instance.onControllerButtonUp += value;
+            remove => Instance.onControllerButtonUp -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked when a controller is connected.
         /// </summary>
-        public static event ControllerConnectionDelegate OnControllerConnected = delegate { };
+        public static event ControllerConnectionDelegate OnControllerConnected
+        {
+            add => Instance.onControllerConnected += value;
+            remove => Instance.onControllerConnected -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked when a controller is disconnected.
         /// </summary>
-        public static event ControllerConnectionDelegate OnControllerDisconnected = delegate { };
+        public static event ControllerConnectionDelegate OnControllerDisconnected
+        {
+            add => Instance.onControllerDisconnected += value;
+            remove => Instance.onControllerDisconnected -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked as the trigger passes the TriggerDownThreshold.
         /// </summary>
-        public static event TriggerDelegate OnTriggerDown = delegate { };
+        public static event TriggerDelegate OnTriggerDown
+        {
+            add => Instance.onTriggerDown += value;
+            remove => Instance.onTriggerDown -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked as the trigger passes the TriggerUpThreshold.
         /// </summary>
-        public static event TriggerDelegate OnTriggerUp = delegate { };
+        public static event TriggerDelegate OnTriggerUp
+        {
+            add => Instance.onTriggerUp += value;
+            remove => Instance.onTriggerUp -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a pen touch event is detected.
         /// </summary>
-        public static event OnPenTouchDelegate OnTabletPenTouch = delegate { };
+        public static event OnPenTouchDelegate OnTabletPenTouch
+        {
+            add => Instance.onTabletPenTouch += value;
+            remove => Instance.onTabletPenTouch -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a touch ring event is detected.
         /// touchRingValue for Wacom has 72 levels and goes from 0 to 71. Values are absolute, not
         /// relative to start position.
         /// </summary>
-        public static event OnRingTouchDelegate OnTabletRingTouch = delegate { };
+        public static event OnRingTouchDelegate OnTabletRingTouch
+        {
+            add => Instance.onTabletRingTouch += value;
+            remove => Instance.onTabletRingTouch -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a tablet device button press is detected.
         /// </summary>
-        public static event TabletButtonDelegate OnTabletButtonDown = delegate { };
+        public static event TabletButtonDelegate OnTabletButtonDown
+        {
+            add => Instance.onTabletButtonDown += value;
+            remove => Instance.onTabletButtonDown -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a tablet device button release is detected.
         /// </summary>
-        public static event TabletButtonDelegate OnTabletButtonUp = delegate { };
+        public static event TabletButtonDelegate OnTabletButtonUp
+        {
+            add => Instance.onTabletButtonUp += value;
+            remove => Instance.onTabletButtonUp -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a tablet device is connected.
         /// </summary>
-        public static event TabletConnectionDelegate OnTabletConnected = delegate { };
+        public static event TabletConnectionDelegate OnTabletConnected
+        {
+            add => Instance.onTabletConnected += value;
+            remove => Instance.onTabletConnected -= value;
+        }
 
         /// <summary>
         /// This callback will be invoked whenever a tablet device is disconnected. This tabletID is no longer valid.
         /// </summary>
-        public static event TabletConnectionDelegate OnTabletDisconnected = delegate { };
-        #endif
+        public static event TabletConnectionDelegate OnTabletDisconnected
+        {
+            add => Instance.onTabletDisconnected += value;
+            remove => Instance.onTabletDisconnected -= value;
+        }
+
+        /// <summary>
+        /// This callback will be invoked whenever a detected touchpad gesture begins.
+        /// </summary>
+        private event ControllerTouchpadGestureDelegate onControllerTouchpadGestureStart = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked as a detected touchpad gesture continues.
+        /// </summary>
+        private event ControllerTouchpadGestureDelegate onControllerTouchpadGestureContinue = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a detected touchpad gesture ends.
+        /// </summary>
+        private event ControllerTouchpadGestureDelegate onControllerTouchpadGestureEnd = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a button press is detected.
+        /// </summary>
+        private event ControllerButtonDelegate onControllerButtonDown = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a button release is detected.
+        /// </summary>
+        private event ControllerButtonDelegate onControllerButtonUp = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked when a controller is connected.
+        /// </summary>
+        private event ControllerConnectionDelegate onControllerConnected = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked when a controller is disconnected.
+        /// </summary>
+        private event ControllerConnectionDelegate onControllerDisconnected = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked as the trigger passes the TriggerDownThreshold.
+        /// </summary>
+        private event TriggerDelegate onTriggerDown = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked as the trigger passes the TriggerUpThreshold.
+        /// </summary>
+        private event TriggerDelegate onTriggerUp = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a pen touch event is detected.
+        /// </summary>
+        private event OnPenTouchDelegate onTabletPenTouch = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a touch ring event is detected.
+        /// touchRingValue for Wacom has 72 levels and goes from 0 to 71. Values are absolute, not
+        /// relative to start position.
+        /// </summary>
+        private event OnRingTouchDelegate onTabletRingTouch = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a tablet device button press is detected.
+        /// </summary>
+        private event TabletButtonDelegate onTabletButtonDown = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a tablet device button release is detected.
+        /// </summary>
+        private event TabletButtonDelegate onTabletButtonUp = delegate { };
+
+        /// <summary>
+        /// This callback will be invoked whenever a tablet device is connected.
+        /// </summary>
+        private event TabletConnectionDelegate onTabletConnected = delegate { };
+        /// <summary>
+        /// This callback will be invoked whenever a tablet device is disconnected. This tabletID is no longer valid.
+        /// </summary>
+        private event TabletConnectionDelegate onTabletDisconnected = delegate { };
+#endif
 
         /// <summary>
         /// Standardized enumeration of handedness
@@ -497,17 +624,13 @@ namespace UnityEngine.XR.MagicLeap
         {
             tabletStates = null;
 
-            if (!MLInput.IsValidInstance())
-            {
-                MLPluginLog.ErrorFormat("MLInput.GetTabletStates failed. Reason: No Instance for MLInput");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLInput.GetTabletStates failed. Reason: No Instance for MLInput");
-            }
 
             if (TabletDevices.Contains(tabletId))
             {
                 NativeBindings.TabletDeviceStatesListNative currentTabletStates = NativeBindings.TabletDeviceStatesListNative.Create();
 
-                MLResult.Code resultCode = NativeBindings.MLInputGetTabletDeviceStates(_instance.inputHandle, tabletId, ref currentTabletStates);
+                MLResult.Code resultCode = NativeBindings.MLInputGetTabletDeviceStates(Instance.inputHandle, tabletId, ref currentTabletStates);
+
                 if (!MLResult.IsOK(resultCode))
                 {
                     MLPluginLog.ErrorFormat("MLInput.GetTabletStates failed to get tablet device states for tabletId {0}. Reason: {1}", tabletId, MLResult.CodeToString(resultCode));
@@ -515,8 +638,7 @@ namespace UnityEngine.XR.MagicLeap
                 else
                 {
                     tabletStates = NativeBindings.DeviceStatesToArray(currentTabletStates);
-
-                    resultCode = NativeBindings.MLInputReleaseTabletDeviceStates(_instance.inputHandle, ref currentTabletStates);
+                    resultCode = NativeBindings.MLInputReleaseTabletDeviceStates(Instance.inputHandle, ref currentTabletStates);
                     if (!MLResult.IsOK(resultCode))
                     {
                         MLPluginLog.ErrorFormat("MLInput.GetTabletStates failed to release tablet device states list for tabletId {0}. Reason: {1}", tabletId, MLResult.CodeToString(resultCode));
@@ -532,26 +654,6 @@ namespace UnityEngine.XR.MagicLeap
             }
         }
 
-        /// <summary>
-        /// Starts the Input API.
-        /// </summary>
-        /// <param name="config">The configuration applied to input upon initialization.</param>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if failed due to internal invalid input parameter.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
-        /// </returns>
-        public static MLResult Start(Configuration config = null)
-        {
-            if (config == null)
-            {
-                config = new MagicLeap.MLInput.Configuration(true);
-            }
-
-            CreateInstance(config);
-
-            return MLInput.BaseStart(true);
-        }
 
         /// <summary>
         /// Gets a reference to a Controller object via hand mapping
@@ -560,17 +662,13 @@ namespace UnityEngine.XR.MagicLeap
         /// <returns> The first MLInput.Controller mapped to the specified hand. </returns>
         public static MLInput.Controller GetController(Hand hand)
         {
-            if (MLInput.IsValidInstance())
+            for (int i = 0; i < Instance.controllers.Length; ++i)
             {
-                for (int i = 0; i < _instance.controllers.Length; ++i)
+                if (Instance.controllers[i].Hand == hand)
                 {
-                    if (_instance.controllers[i].Hand == hand)
-                    {
-                        return _instance.controllers[i];
-                    }
+                    return Instance.controllers[i];
                 }
             }
-
             return null;
         }
 
@@ -581,12 +679,9 @@ namespace UnityEngine.XR.MagicLeap
         /// <returns>MLInput.Controller corresponding to the specified index.</returns>
         public static MLInput.Controller GetController(int controllerIndex)
         {
-            if (MLInput.IsValidInstance())
+            if (controllerIndex >= 0 && controllerIndex < Instance.controllers.Length)
             {
-                if (controllerIndex >= 0 && controllerIndex < _instance.controllers.Length)
-                {
-                    return _instance.controllers[controllerIndex];
-                }
+                return Instance.controllers[controllerIndex];
             }
 
             return null;
@@ -599,12 +694,9 @@ namespace UnityEngine.XR.MagicLeap
         /// <param name="hand">The hand to assign to the controller index.</param>
         public static void SetControllerHand(int controllerIndex, Hand hand)
         {
-            if (MLInput.IsValidInstance())
+            if (controllerIndex >= 0 && controllerIndex < Instance.controllers.Length)
             {
-                if (controllerIndex >= 0 && controllerIndex < _instance.controllers.Length)
-                {
-                    _instance.controllers[controllerIndex].Hand = hand;
-                }
+                Instance.controllers[controllerIndex].Hand = hand;
             }
         }
 
@@ -615,14 +707,11 @@ namespace UnityEngine.XR.MagicLeap
         /// <returns> Index of controller mapped to the specified hand. </returns>
         public static int GetControllerIndexFromHand(Hand hand)
         {
-            if (MLInput.IsValidInstance())
+            for (int i = 0; i < Instance.controllers.Length; ++i)
             {
-                for (int i = 0; i < _instance.controllers.Length; ++i)
+                if (Instance.controllers[i].Hand == hand)
                 {
-                    if (_instance.controllers[i].Hand == hand)
-                    {
-                        return i;
-                    }
+                    return i;
                 }
             }
 
@@ -636,35 +725,26 @@ namespace UnityEngine.XR.MagicLeap
         /// <returns> Hand corresponding to the specified index. </returns>
         public static Hand GetHandFromControllerIndex(int controllerIndex)
         {
-            if (!MLInput.IsValidInstance())
+            if (controllerIndex >= 0 && controllerIndex < Instance.controllers.Length)
             {
-                MLPluginLog.ErrorFormat("MLInput.GetHandFromControllerIndex failed. Reason: No Instance for MLInput");
-
-                // return the default hand.
-                return Hand.Left;
+                return Instance.controllers[controllerIndex].Hand;
             }
 
-            if (controllerIndex >= 0 && controllerIndex < _instance.controllers.Length)
-            {
-                return _instance.controllers[controllerIndex].Hand;
-            }
-
-            return _instance.controllers[0].Hand;
+            return Instance.controllers[0].Hand;
         }
 
         /// <summary>
         /// Cleans up this input tracker and unsubscribes from the MagicLeap device's update loop.
         /// </summary>
-        /// <param name="isSafeToAccessManagedObjects">Whether it is safe for the cleanup routine to access managed objects.</param>
-        protected override void CleanupAPI(bool isSafeToAccessManagedObjects)
+        protected override MLResult.Code StopAPI()
         {
             // Disable controller gesture subsystem and tracker.
             NativeBindings.SetControllerGesturesEnabled(false);
             NativeBindings.SetControllerTrackerActive(false);
-
             this.DestroyNativeTracker();
             this.CleanupStaticEvents();
             this.CleanupControllersRegisteredToGestureSubsystem();
+            return MLResult.Code.Ok;
         }
 
 #if !DOXYGEN_SHOULD_SKIP_THIS
@@ -676,28 +756,21 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if necessary privilege is missing.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed to obtain transform due to internal error.
         /// </returns>
-        protected override MLResult StartAPI()
+        protected override MLResult.Code StartAPI()
         {
             // Default configuration, MLInput no longer handles 6DOF.
-            MLResult.Code resultCode = NativeBindings.MLInputCreate(IntPtr.Zero, ref this.inputHandle);
+            MLResult.Code resultCode = NativeBindings.MLInputCreate(IntPtr.Zero, ref Instance.inputHandle);
             if (!MLResult.IsOK(resultCode))
             {
-                // TODO: Return failed result
-                MLPluginLog.ErrorFormat("MLInput.StartAPI failed to create input tracker. Reason: {0}", MLResult.CodeToString(resultCode));
-            }
-
-            if (!MagicLeapNativeBindings.MLHandleIsValid(this.inputHandle))
-            {
-                MLPluginLog.Error("MLInput.StartAPI failed. Reason: Invalid handle returned when initializing an instance of MLInput.");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure);
+                return resultCode;
             }
 
             // catch already connected devices and trigger connect event
             TabletDevices = new List<byte>();
 
             NativeBindings.ConnectedDevicesListNative tabletList = NativeBindings.ConnectedDevicesListNative.Create();
-
             resultCode = NativeBindings.MLInputGetConnectedDevices(this.inputHandle, ref tabletList);
+
             if (resultCode == MLResult.Code.NotImplemented)
             {
                 MLPluginLog.WarningFormat("MLInput.StartAPI failed to get connected devices. Reason: {0}", MLResult.CodeToString(resultCode));
@@ -708,17 +781,18 @@ namespace UnityEngine.XR.MagicLeap
             }
             else
             {
-                byte[] connectedTablets = NativeBindings.GetConnectedTabletIds(tabletList);
-                for (int i = 0; i < connectedTablets.Length; i++)
+                byte[] connectedTablets = null;
+                connectedTablets = NativeBindings.GetConnectedTabletIds(tabletList); 
+                if (connectedTablets != null)
                 {
-                    OnTabletConnectNative(connectedTablets[i], System.IntPtr.Zero);
+                    for (int i = 0; i < connectedTablets.Length; i++)
+                    {
+                        OnTabletConnectNative(connectedTablets[i], System.IntPtr.Zero);
+                    }
+
+                    resultCode = NativeBindings.MLInputReleaseConnectedDevicesList(this.inputHandle, ref tabletList);
                 }
 
-                resultCode = NativeBindings.MLInputReleaseConnectedDevicesList(this.inputHandle, ref tabletList);
-                if (!MLResult.IsOK(resultCode))
-                {
-                    MLPluginLog.ErrorFormat("MLInput.StartAPI failed to release connected devices lists. Reason: {0}", MLResult.CodeToString(resultCode));
-                }
             }
 
             this.InitControllers();
@@ -736,30 +810,15 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
-        /// static instance of the MLInput class
-        /// </summary>
-        /// <param name="config">An instance of the configuration file to apply.</param>
-        private static void CreateInstance(Configuration config)
-        {
-            if (!MLInput.IsValidInstance())
-            {
-                MLInput._instance = new MLInput(config);
-            }
-        }
-
-        /// <summary>
         /// Dispatches an event for controller touchpad gesture start.
         /// </summary>
         /// <param name="controllerId">The zero-based index of the controller.</param>
         /// <param name="touchpadGesture">The touchpad gesture.</param>
         private static void OnControllerTouchpadGestureStartNative(byte controllerId, MLInput.Controller.TouchpadGesture touchpadGesture)
         {
-            if (MLInput.IsValidInstance())
-            {
-                // Create an instance of MLInput.Controller.TouchpadGesture, since we queue it.
-                var unityTouchpadGesture = new MLInput.Controller.TouchpadGesture(touchpadGesture);
-                MLThreadDispatch.Call(controllerId, unityTouchpadGesture, OnControllerTouchpadGestureStart);
-            }
+            // Create an instance of MLInput.Controller.TouchpadGesture, since we queue it.
+            var unityTouchpadGesture = new MLInput.Controller.TouchpadGesture(touchpadGesture);
+            MLThreadDispatch.Call(controllerId, unityTouchpadGesture, Instance.onControllerTouchpadGestureStart);
         }
 
         /// <summary>
@@ -769,12 +828,9 @@ namespace UnityEngine.XR.MagicLeap
         /// <param name="touchpadGesture">The touchpad gesture.</param>
         private static void OnControllerTouchpadGestureContinueNative(byte controllerId, MLInput.Controller.TouchpadGesture touchpadGesture)
         {
-            if (MLInput.IsValidInstance())
-            {
-                // Create an instance of MLInput.Controller.TouchpadGesture, since we queue it.
-                var unityTouchpadGesture = new MLInput.Controller.TouchpadGesture(touchpadGesture);
-                MLThreadDispatch.Call(controllerId, unityTouchpadGesture, OnControllerTouchpadGestureContinue);
-            }
+            // Create an instance of MLInput.Controller.TouchpadGesture, since we queue it.
+            var unityTouchpadGesture = new MLInput.Controller.TouchpadGesture(touchpadGesture);
+            MLThreadDispatch.Call(controllerId, unityTouchpadGesture, Instance.onControllerTouchpadGestureContinue);
         }
 
         /// <summary>
@@ -784,12 +840,9 @@ namespace UnityEngine.XR.MagicLeap
         /// <param name="touchpadGesture">The touchpad gesture.</param>
         private static void OnControllerTouchpadGestureEndNative(byte controllerId, MLInput.Controller.TouchpadGesture touchpadGesture)
         {
-            if (MLInput.IsValidInstance())
-            {
-                // Create an instance of MLInput.Controller.TouchpadGesture, since we queue it.
-                var unityTouchpadGesture = new MLInput.Controller.TouchpadGesture(touchpadGesture);
-                MLThreadDispatch.Call(controllerId, unityTouchpadGesture, OnControllerTouchpadGestureEnd);
-            }
+            // Create an instance of MLInput.Controller.TouchpadGesture, since we queue it.
+            var unityTouchpadGesture = new MLInput.Controller.TouchpadGesture(touchpadGesture);
+            MLThreadDispatch.Call(controllerId, unityTouchpadGesture, Instance.onControllerTouchpadGestureEnd);
         }
 
         /// <summary>
@@ -800,10 +853,7 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnControllerButtonNativeCallbackPrivate))]
         private static void OnControllerButtonDownNative(byte controllerId, Controller.Button button)
         {
-            if (MLInput.IsValidInstance())
-            {
-                MLThreadDispatch.Call(controllerId, button, OnControllerButtonDown);
-            }
+            MLThreadDispatch.Call(controllerId, button, Instance.onControllerButtonDown);
         }
 
         /// <summary>
@@ -814,10 +864,7 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnControllerButtonNativeCallbackPrivate))]
         private static void OnControllerButtonUpNative(byte controllerId, Controller.Button button)
         {
-            if (MLInput.IsValidInstance())
-            {
-                MLThreadDispatch.Call(controllerId, button, OnControllerButtonUp);
-            }
+            MLThreadDispatch.Call(controllerId, button, Instance.onControllerButtonUp);
         }
 
         /// <summary>
@@ -827,10 +874,7 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnControllerConnectNativeCallbackPrivate))]
         private static void OnControllerConnectNative(byte controllerId)
         {
-            if (MLInput.IsValidInstance())
-            {
-                MLThreadDispatch.Call(controllerId, OnControllerConnected);
-            }
+            MLThreadDispatch.Call(controllerId, Instance.onControllerConnected);
         }
 
         /// <summary>
@@ -840,10 +884,7 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnControllerDisconnectNativeCallbackPrivate))]
         private static void OnControllerDisconnectNative(byte controllerId)
         {
-            if (MLInput.IsValidInstance())
-            {
-                MLThreadDispatch.Call(controllerId, OnControllerDisconnected);
-            }
+            MLThreadDispatch.Call(controllerId, Instance.onControllerDisconnected);
         }
 
         /// <summary>
@@ -855,17 +896,14 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnTabletPenTouchNativeCallbackPrivate))]
         private static void OnTabletPenTouchNative(byte tabletId, ref NativeBindings.TabletDeviceStateNative tabletState, System.IntPtr data)
         {
-            if (MLInput.IsValidInstance())
+            if (TabletDevices.Contains(tabletId))
             {
-                if (TabletDevices.Contains(tabletId))
-                {
-                    TabletState newState = tabletState.Data;
-                    MLThreadDispatch.Call(tabletId, newState, OnTabletPenTouch);
-                }
-                else
-                {
-                    MLPluginLog.Warning("MLInput.OnTabletPenTouch event recieved from unregistered tablet device.");
-                }
+                TabletState newState = tabletState.Data;
+                MLThreadDispatch.Call(tabletId, newState, Instance.onTabletPenTouch);
+            }
+            else
+            {
+                MLPluginLog.Warning("MLInput.OnTabletPenTouch event recieved from unregistered tablet device.");
             }
         }
 
@@ -879,16 +917,13 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnTabletRingTouchNativeCallbackPrivate))]
         private static void OnTabletRingTouchNative(byte tabletId, int touchRingValue, ulong timeStamp, System.IntPtr data)
         {
-            if (MLInput.IsValidInstance())
+            if (TabletDevices.Contains(tabletId))
             {
-                if (TabletDevices.Contains(tabletId))
-                {
-                    MLThreadDispatch.Call(tabletId, touchRingValue, timeStamp, OnTabletRingTouch);
-                }
-                else
-                {
-                    MLPluginLog.Warning("MLInput.OnTabletRingTouch event recieved from unregistered tablet device.");
-                }
+                MLThreadDispatch.Call(tabletId, touchRingValue, timeStamp, Instance.onTabletRingTouch);
+            }
+            else
+            {
+                MLPluginLog.Warning("MLInput.OnTabletRingTouch event recieved from unregistered tablet device.");
             }
         }
 
@@ -902,16 +937,13 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnTabletButtonDownNativeCallbackPrivate))]
         private static void OnTabletButtonDownNative(byte tabletId, TabletDeviceButton tabletButton, ulong timeStamp, System.IntPtr data)
         {
-            if (MLInput.IsValidInstance())
+            if (TabletDevices.Contains(tabletId))
             {
-                if (TabletDevices.Contains(tabletId))
-                {
-                    MLThreadDispatch.Call(tabletId, tabletButton, timeStamp, OnTabletButtonDown);
-                }
-                else
-                {
-                    MLPluginLog.Warning("MLInput.OnTabletButtonDown event recieved from unregistered tablet device.");
-                }
+                MLThreadDispatch.Call(tabletId, tabletButton, timeStamp, Instance.onTabletButtonDown);
+            }
+            else
+            {
+                MLPluginLog.Warning("MLInput.OnTabletButtonDown event recieved from unregistered tablet device.");
             }
         }
 
@@ -925,16 +957,13 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnTabletButtonUpNativeCallbackPrivate))]
         private static void OnTabletButtonUpNative(byte tabletId, TabletDeviceButton tabletButton, ulong timeStamp, System.IntPtr data)
         {
-            if (MLInput.IsValidInstance())
+            if (TabletDevices.Contains(tabletId))
             {
-                if (TabletDevices.Contains(tabletId))
-                {
-                    MLThreadDispatch.Call(tabletId, tabletButton, timeStamp, OnTabletButtonUp);
-                }
-                else
-                {
-                    MLPluginLog.Warning("MLInput.OnTabletButtonUp event recieved from unregistered tablet device.");
-                }
+                MLThreadDispatch.Call(tabletId, tabletButton, timeStamp, Instance.onTabletButtonUp);
+            }
+            else
+            {
+                MLPluginLog.Warning("MLInput.OnTabletButtonUp event recieved from unregistered tablet device.");
             }
         }
 
@@ -946,23 +975,20 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnTabletConnectNativeCallbackPrivate))]
         private static void OnTabletConnectNative(byte tabletId, System.IntPtr data)
         {
-            if (MLInput.IsValidInstance())
+            bool keyFound = TabletDevices.Contains(tabletId);
+            if (!keyFound && (TabletDevices.Count < UnofficialSupportedTablets))
             {
-                bool keyFound = TabletDevices.Contains(tabletId);
-                if (!keyFound && (TabletDevices.Count < UnofficialSupportedTablets))
-                {
-                    MLThreadDispatch.Call(tabletId, OnTabletConnected);
+                MLThreadDispatch.Call(tabletId, Instance.onTabletConnected);
 
-                    TabletDevices.Add(tabletId);
-                }
-                else if (keyFound)
-                {
-                    MLPluginLog.Warning("MLInput.OnTabletConnected event getting called for already connected tablet device.");
-                }
-                else
-                {
-                    MLPluginLog.Warning("MLInput.OnTabletConnected event unable to register new tablet connection. Reason: maximum tablet connections has been reached.");
-                }
+                TabletDevices.Add(tabletId);
+            }
+            else if (keyFound)
+            {
+                MLPluginLog.Warning("MLInput.OnTabletConnected event getting called for already connected tablet device.");
+            }
+            else
+            {
+                MLPluginLog.Warning("MLInput.OnTabletConnected event unable to register new tablet connection. Reason: maximum tablet connections has been reached.");
             }
         }
 
@@ -974,17 +1000,14 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(OnTabletDisconnectNativeCallbackPrivate))]
         private static void OnTabletDisconnectNative(byte tabletId, System.IntPtr data)
         {
-            if (MLInput.IsValidInstance())
+            if (TabletDevices.Contains(tabletId))
             {
-                if (TabletDevices.Contains(tabletId))
-                {
-                    MLThreadDispatch.Call(tabletId, OnTabletDisconnected);
-                    TabletDevices.Remove(tabletId);
-                }
-                else
-                {
-                    MLPluginLog.Warning("MLInput.OnTabletDisconnected event getting called for not currently registered tablet device.");
-                }
+                MLThreadDispatch.Call(tabletId, Instance.onTabletDisconnected);
+                TabletDevices.Remove(tabletId);
+            }
+            else
+            {
+                MLPluginLog.Warning("MLInput.OnTabletDisconnected event getting called for not currently registered tablet device.");
             }
         }
 
@@ -993,6 +1016,8 @@ namespace UnityEngine.XR.MagicLeap
         /// </summary>
         private void InitControllers()
         {
+            bool success = false;
+
             // Default is to map controller 0 to left hand and controller 1 to right hand
             this.controllers = new MLInput.Controller[Enum.GetNames(typeof(Hand)).Length];
             this.controllers[0] = new MLInput.Controller(this.inputHandle, 0, Hand.Left);
@@ -1002,45 +1027,16 @@ namespace UnityEngine.XR.MagicLeap
             {
                 // Enable 6DOF (ControllerPose) for the controller.
                 NativeBindings.SetControllerTrackerActive(true);
-                if (NativeBindings.GetControllerTrackerActive())
+                success = NativeBindings.GetControllerTrackerActive();
+
+                if (success)
                 {
                     // Apply Configuration
                     this.SetControllerConfiguration();
                 }
                 else
                 {
-                    MLResult result = MLPrivileges.Start();
-                    if (result.IsOk)
-                    {
-                        result = MLPrivileges.CheckPrivilege(MLPrivileges.Id.ControllerPose);
-                        if (result == MLResult.Code.PrivilegeNotGranted)
-                        {
-                            MLPluginLog.WarningFormat("MLInput.InitControllers failed to initialize because the CotrollerPose privilege was not granted. Reason: {0}", MLResult.CodeToString(MLResult.Code.PrivilegeNotGranted));
-                        }
-                        else
-                        {
-                            MLPluginLog.ErrorFormat("MLInput.InitControllers failed to initialize controller tracker. Reason: {0}", MLResult.CodeToString(MLResult.Code.UnspecifiedFailure));
-                        }
-
-                    }
-                    else
-                    {
-                        MLPluginLog.ErrorFormat("MLInput.MLPrivileges failed to start. Reason: {0}", MLResult.CodeToString(MLResult.Code.UnspecifiedFailure));
-                        MLPluginLog.ErrorFormat("MLInput.InitControllers failed to initialize controller tracker. Reason: {0}", MLResult.CodeToString(MLResult.Code.UnspecifiedFailure));
-                    }
-
-                    MLPrivileges.Stop();
-                }
-            }
-
-            // Enable Controller Gestures
-            NativeBindings.SetControllerGesturesEnabled(true);
-            if (!NativeBindings.IsControllerGesturesEnabled())
-            {
-                MLResult result = MLPrivileges.Start();
-                if (result.IsOk)
-                {
-                    result = MLPrivileges.CheckPrivilege(MLPrivileges.Id.ControllerPose);
+                    MLResult result = MLPrivileges.CheckPrivilege(MLPrivileges.Id.ControllerPose);
                     if (result == MLResult.Code.PrivilegeNotGranted)
                     {
                         MLPluginLog.WarningFormat("MLInput.InitControllers failed to initialize because the CotrollerPose privilege was not granted. Reason: {0}", MLResult.CodeToString(MLResult.Code.PrivilegeNotGranted));
@@ -1049,15 +1045,24 @@ namespace UnityEngine.XR.MagicLeap
                     {
                         MLPluginLog.ErrorFormat("MLInput.InitControllers failed to initialize controller tracker. Reason: {0}", MLResult.CodeToString(MLResult.Code.UnspecifiedFailure));
                     }
+                }
+            }
 
+            // Enable Controller Gestures
+            NativeBindings.SetControllerGesturesEnabled(true);
+            success = NativeBindings.IsControllerGesturesEnabled();
+
+            if (!success)
+            {
+                MLResult result = MLPrivileges.CheckPrivilege(MLPrivileges.Id.ControllerPose);
+                if (result == MLResult.Code.PrivilegeNotGranted)
+                {
+                    MLPluginLog.WarningFormat("MLInput.InitControllers failed to initialize because the CotrollerPose privilege was not granted. Reason: {0}", MLResult.CodeToString(MLResult.Code.PrivilegeNotGranted));
                 }
                 else
                 {
-                    MLPluginLog.ErrorFormat("MLInput.MLPrivileges failed to start. Reason: {0}", MLResult.CodeToString(MLResult.Code.UnspecifiedFailure));
                     MLPluginLog.ErrorFormat("MLInput.InitControllers failed to initialize controller tracker. Reason: {0}", MLResult.CodeToString(MLResult.Code.UnspecifiedFailure));
                 }
-
-                MLPrivileges.Stop();
             }
 
             // Register Callbacks
@@ -1076,13 +1081,18 @@ namespace UnityEngine.XR.MagicLeap
 
             this.triggerPressed = new bool[this.controllers.Length];
 
-            if (this.config == null)
-            {
-                this.config = new Configuration(true);
-            }
-
             TriggerDownThreshold = this.config.TriggerDownThreshold;
             TriggerUpThreshold = this.config.TriggerUpThreshold;
+        }
+
+        public static void SetConfig(Configuration newConfig)
+        {
+            if(newConfig != null)
+            {
+                Instance.config = Instance.config == null ? new Configuration(true) : newConfig;
+                TriggerDownThreshold = Instance.config.TriggerDownThreshold;
+                TriggerUpThreshold = Instance.config.TriggerUpThreshold;
+            }
         }
 
         /// <summary>
@@ -1107,7 +1117,7 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
         /// </returns>
-        private MLResult InitNativeCallbacks()
+        private MLResult.Code InitNativeCallbacks()
         {
             NativeBindings.TabletDeviceCallbacksNative tabletCallbacks = NativeBindings.TabletDeviceCallbacksNative.Create();
             tabletCallbacks.OnPenTouchEvent = OnTabletPenTouchNative;
@@ -1120,18 +1130,12 @@ namespace UnityEngine.XR.MagicLeap
             MLResult.Code resultCode = NativeBindings.MLInputSetTabletDeviceCallbacks(this.inputHandle, ref tabletCallbacks, IntPtr.Zero);
             if (resultCode == MLResult.Code.NotImplemented)
             {
-                MLPluginLog.WarningFormat("MLInput.InitNativeCallbacks failed to set tablet callbacks. Reason: {0}", MLResult.CodeToString(resultCode));
-
                 #if UNITY_EDITOR
                 resultCode = MLResult.Code.Ok;
                 #endif
             }
-            else if (!MLResult.IsOK(resultCode))
-            {
-                MLPluginLog.ErrorFormat("MLInput.InitNativeCallbacks failed to set tablet callbacks. Reason: {0}", MLResult.CodeToString(resultCode));
-            }
 
-            return MLResult.Create(resultCode);
+            return resultCode;
         }
 
         /// <summary>
@@ -1191,7 +1195,7 @@ namespace UnityEngine.XR.MagicLeap
                     if (triggerReading <= TriggerUpThreshold)
                     {
                         this.triggerPressed[i] = false;
-                        MLInput.OnTriggerUp(i, triggerReading);
+                        this.onTriggerUp(i, triggerReading);
                     }
                 }
                 else
@@ -1199,7 +1203,7 @@ namespace UnityEngine.XR.MagicLeap
                     if (triggerReading >= TriggerDownThreshold)
                     {
                         this.triggerPressed[i] = true;
-                        MLInput.OnTriggerDown(i, triggerReading);
+                        this.onTriggerDown(i, triggerReading);
                     }
                 }
             }
@@ -1220,7 +1224,7 @@ namespace UnityEngine.XR.MagicLeap
 
             // Use the cached value of Application.isEditor here to avoid a crash if this logic is reached
             // from the destructor upon editor close.
-            this.inputHandle = MLInputNativeBindings.InvalidHandle;
+            this.inputHandle = MagicLeapNativeBindings.InvalidHandle;
         }
 
         /// <summary>
@@ -1228,23 +1232,23 @@ namespace UnityEngine.XR.MagicLeap
         /// </summary>
         private void CleanupStaticEvents()
         {
-            OnControllerTouchpadGestureStart = delegate { };
-            OnControllerTouchpadGestureContinue = delegate { };
-            OnControllerTouchpadGestureEnd = delegate { };
+            Instance.onControllerTouchpadGestureStart = delegate { };
+            this.onControllerTouchpadGestureContinue = delegate { };
+            this.onControllerTouchpadGestureEnd = delegate { };
 
-            OnControllerButtonDown = delegate { };
-            OnControllerButtonUp = delegate { };
-            OnControllerConnected = delegate { };
-            OnControllerDisconnected = delegate { };
-            OnTriggerDown = delegate { };
-            OnTriggerUp = delegate { };
+            this.onControllerButtonDown = delegate { };
+            this.onControllerButtonUp = delegate { };
+            this.onControllerConnected = delegate { };
+            this.onControllerDisconnected = delegate { };
+            this.onTriggerDown = delegate { };
+            this.onTriggerUp = delegate { };
 
-            OnTabletPenTouch = delegate { };
-            OnTabletRingTouch = delegate { };
-            OnTabletButtonDown = delegate { };
-            OnTabletButtonUp = delegate { };
-            OnTabletConnected = delegate { };
-            OnTabletDisconnected = delegate { };
+            this.onTabletPenTouch = delegate { };
+            this.onTabletRingTouch = delegate { };
+            this.onTabletButtonDown = delegate { };
+            this.onTabletButtonUp = delegate { };
+            this.onTabletConnected = delegate { };
+            this.onTabletDisconnected = delegate { };
         }
 
         /// <summary>
@@ -1253,16 +1257,7 @@ namespace UnityEngine.XR.MagicLeap
         private void CleanupNativeCallbacks()
         {
             NativeBindings.TabletDeviceCallbacksNative tabletCallbacks = NativeBindings.TabletDeviceCallbacksNative.Create();
-
-            MLResult.Code resultCode = NativeBindings.MLInputSetTabletDeviceCallbacks(this.inputHandle, ref tabletCallbacks, IntPtr.Zero);
-            if (resultCode == MLResult.Code.NotImplemented)
-            {
-                MLPluginLog.WarningFormat("MLInput.CleanupNativeCallbacks failed to unset tablet callbacks. Reason: {0}", MLResult.CodeToString(resultCode));
-            }
-            else if (!MLResult.IsOK(resultCode))
-            {
-                MLPluginLog.ErrorFormat("MLInput.CleanupNativeCallbacks failed to unset tablet callbacks. Reason: {0}", MLResult.CodeToString(resultCode));
-            }
+            NativeBindings.MLInputSetTabletDeviceCallbacks(this.inputHandle, ref tabletCallbacks, IntPtr.Zero);
         }
 
         /// <summary>

@@ -20,7 +20,7 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Creates planes requests and delegates their result.
     /// </summary>
-    public partial class MLPlanes : MLAPISingleton<MLPlanes>
+    public partial class MLPlanes
     {
         /// <summary>
         /// See ml_planes.h for additional comments

@@ -72,7 +72,7 @@ namespace UnityEngine.XR.MagicLeap
                 }
 
                 this.Status = PageStatus.Pending;
-                MLDevice.Register(this.Update);
+                MLDevice.RegisterUpdate(this.Update);
                 this.UnregisterUpdate = true;
 
                 return MLResult.Create(MLResult.Code.Ok);

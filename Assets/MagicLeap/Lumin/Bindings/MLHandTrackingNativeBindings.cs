@@ -21,7 +21,7 @@ namespace UnityEngine.XR.MagicLeap
     /// MLHandTracking is the entry point for all the hand tracking data
     /// including gestures, hand centers and key points for both hands.
     /// </summary>
-    public partial class MLHandTracking : MLAPISingleton<MLHandTracking>
+    public partial class MLHandTracking
     {
         /// <summary>
         /// Class that deals with the native calls and configurations of the MLHandTracking API.

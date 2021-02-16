@@ -90,19 +90,8 @@ namespace UnityEngine.XR.MagicLeap
         void Start()
         {
             #if PLATFORM_LUMIN
-            MLResult result = MLPrivileges.Start();
-            if (result.IsOk)
-            {
-                _privilegesToRequest.AddRange(Array.ConvertAll(_privileges, tempPrivilege => (MLPrivileges.Id)tempPrivilege));
-                _state = PrivilegeState.Started;
-            }
-            else
-            {
-                Debug.LogErrorFormat("Error: PrivilegeRequester failed starting MLPrivileges, disabling script. Reason: {0}", result);
-                _state = PrivilegeState.StartFailed;
-                OnPrivilegesDone(result);
-                enabled = false;
-            }
+            _privilegesToRequest.AddRange(Array.ConvertAll(_privileges, tempPrivilege => (MLPrivileges.Id)tempPrivilege));
+            _state = PrivilegeState.Started;
             #endif
         }
 
@@ -116,19 +105,6 @@ namespace UnityEngine.XR.MagicLeap
             {
                 UpdatePrivilege();
             }
-        }
-
-        /// <summary>
-        /// If the Privileges API is running, stop it.
-        /// </summary>
-        void OnDestroy()
-        {
-            #if PLATFORM_LUMIN
-            if (MLPrivileges.IsStarted)
-            {
-                MLPrivileges.Stop();
-            }
-            #endif
         }
 
         /// <summary>

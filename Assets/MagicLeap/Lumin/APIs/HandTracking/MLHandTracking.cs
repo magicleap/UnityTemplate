@@ -19,9 +19,9 @@ namespace UnityEngine.XR.MagicLeap
     /// MLHandTracking is the entry point for all the hand tracking data
     /// including gestures, hand centers and key points for both hands.
     /// </summary>
-    public partial class MLHandTracking : MLAPISingleton<MLHandTracking>
+    public partial class MLHandTracking : MLAutoAPISingleton<MLHandTracking>
     {
-        #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
         /// <summary>
         /// The object to manage when different key poses start and end.
         /// </summary>
@@ -36,7 +36,17 @@ namespace UnityEngine.XR.MagicLeap
         /// Left hand class used to get left hand specific data.
         /// </summary>
         private Hand left;
-        #endif
+
+        /// <summary>
+        /// List for left hand devices.
+        /// </summary>
+        private List<InputDevice> leftHandDevices = new List<InputDevice>();
+
+        /// <summary>
+        /// List for right hand devices.
+        /// </summary>
+        private List<InputDevice> rightHandDevices = new List<InputDevice>();
+#endif
 
         /// <summary>
         /// Static key pose types which are available when both hands are separated.
@@ -152,77 +162,22 @@ namespace UnityEngine.XR.MagicLeap
             Right
         }
 
-        #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
         /// <summary>
         /// Gets the key pose manager of the instance.
         /// </summary>
-        public static KeyposeManager KeyPoseManager
-        {
-            get
-            {
-                if (MLHandTracking.IsValidInstance())
-                {
-                    return _instance.keyposeManager;
-                }
-                else
-                {
-                    MLPluginLog.ErrorFormat("MLHandTracking.KeyPoseManager failed. Reason: No Instance for MLHandTracking.");
-                    return null;
-                }
-            }
-        }
+        public static KeyposeManager KeyPoseManager => Instance.keyposeManager;
 
         /// <summary>
         /// Gets the left hand.
         /// </summary>
-        public static Hand Left
-        {
-            get
-            {
-                if (MLHandTracking.IsValidInstance())
-                {
-                    return _instance.left;
-                }
-                else
-                {
-                    MLPluginLog.ErrorFormat("MLHandTracking.Left failed. Reason: No Instance for MLHandTracking.");
-                    return null;
-                }
-            }
-        }
+        public static Hand Left => Instance.left;
 
         /// <summary>
         /// Gets the right hand.
         /// </summary>
-        public static Hand Right
-        {
-            get
-            {
-                if (MLHandTracking.IsValidInstance())
-                {
-                    return _instance.right;
-                }
-                else
-                {
-                    MLPluginLog.ErrorFormat("MLHandTracking.Right failed. Reason: No Instance for MLHandTracking.");
-                    return null;
-                }
-            }
-        }
+        public static Hand Right => Instance.right;
 
-        /// <summary>
-        /// Starts the HandTracking API.
-        /// </summary>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to other internal error.
-        /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if necessary privilege is missing.
-        /// </returns>
-        public static MLResult Start()
-        {
-            CreateInstance();
-            return MLHandTracking.BaseStart(true);
-        }
 
         #if !DOXYGENSHOULDSKIPTHIS
         /// <summary>
@@ -232,7 +187,7 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed to initialize the native hand tracker.
         /// </returns>
-        protected override MLResult StartAPI()
+        protected override MLResult.Code StartAPI()
         {
             this.left = new Hand(MLHandTracking.HandType.Left);
             this.right = new Hand(MLHandTracking.HandType.Right);
@@ -246,45 +201,31 @@ namespace UnityEngine.XR.MagicLeap
                 NativeBindings.SetHandGesturesEnabled(true);
                 if (!NativeBindings.IsHandGesturesEnabled())
                 {
-                    MLResult result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLHandTracking.StartAPI failed to initialize the native hand tracker.");
                     MLPluginLog.Error("MLHandTracking.StartAPI failed to initialize the native hand tracker.");
-                    return result;
+                    return MLResult.Code.UnspecifiedFailure;
                 }
             }
             catch (EntryPointNotFoundException)
             {
                 MLPluginLog.Error("MLHandTracking.StartAPI failed. Reason: API symbols not found.");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLHandTracking.StartAPI failed. Reason: API symbols not found.");
+                return MLResult.Code.UnspecifiedFailure;
             }
 
-            return MLResult.Create(MLResult.Code.Ok);
+            return MLResult.Code.Ok;
         }
 
         /// <summary>
         /// Cleans up API and unmanaged memory.
         /// </summary>
-        /// <param name="isSafeToAccessManagedObjects">Allow complete cleanup of the API.</param>
-        protected override void CleanupAPI(bool isSafeToAccessManagedObjects)
+        protected override MLResult.Code StopAPI()
         {
-            if (isSafeToAccessManagedObjects)
-            {
-                // The KeyPoseManager object will not receive any more updates from Left or Right hands.
-                this.keyposeManager.Dispose();
-                this.keyposeManager = null;
-                this.left = null;
-                this.right = null;
-            }
-
-            try
-            {
-                // Attempt to stop the tracker.
-                NativeBindings.SetHandGesturesEnabled(false);
-            }
-            catch (EntryPointNotFoundException)
-            {
-                MLPluginLog.Error("MLHandTracking.CleanupAPI failed. Reason: API symbols not found");
-            }
-
+            // The KeyPoseManager object will not receive any more updates from Left or Right hands.
+            this.keyposeManager.Dispose();
+            this.keyposeManager = null;
+            this.left = null;
+            this.right = null;
+            NativeBindings.SetHandGesturesEnabled(false);
+            return MLResult.Code.Ok;
         }
         #endif // DOXYGENSHOULDSKIPTHIS
 
@@ -293,42 +234,30 @@ namespace UnityEngine.XR.MagicLeap
         /// </summary>
         protected override void Update()
         {
-
-            List<InputDevice> leftHandDevices = new List<InputDevice>();
-
-            #if UNITY_2019_3_OR_NEWER
-            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.HandTracking | InputDeviceCharacteristics.Left, leftHandDevices);
-            #else
-            InputDevices.GetDevicesAtXRNode(XRNode.LeftHand, leftHandDevices);
-            #endif
-
-            if (leftHandDevices.Count > 0 && leftHandDevices[0].isValid)
-            {
-                this.left.Update(leftHandDevices[0]);
-            }
-
-            List<InputDevice> rightHandDevices = new List<InputDevice>();
+            this.leftHandDevices.Clear();
 
             #if UNITY_2019_3_OR_NEWER
-            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.HandTracking | InputDeviceCharacteristics.Right, rightHandDevices);
+            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.HandTracking | InputDeviceCharacteristics.Left, this.leftHandDevices);
             #else
-            InputDevices.GetDevicesAtXRNode(XRNode.RightHand, rightHandDevices);
+            InputDevices.GetDevicesAtXRNode(XRNode.LeftHand, this.leftHandDevices);
             #endif
 
-            if (rightHandDevices.Count > 0 && rightHandDevices[0].isValid)
+            if (this.leftHandDevices.Count > 0 && this.leftHandDevices[0].isValid)
             {
-                this.right.Update(rightHandDevices[0]);
+                this.left.Update(this.leftHandDevices[0]);
             }
-        }
 
-        /// <summary>
-        /// Static instance of the MLHandTracking class.
-        /// </summary>
-        private static void CreateInstance()
-        {
-            if (!MLHandTracking.IsValidInstance())
+            this.rightHandDevices.Clear();
+
+            #if UNITY_2019_3_OR_NEWER
+            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.HandTracking | InputDeviceCharacteristics.Right, this.rightHandDevices);
+            #else
+            InputDevices.GetDevicesAtXRNode(XRNode.RightHand, this.rightHandDevices);
+            #endif
+
+            if (this.rightHandDevices.Count > 0 && this.rightHandDevices[0].isValid)
             {
-                MLHandTracking._instance = new MLHandTracking();
+                this.right.Update(this.rightHandDevices[0]);
             }
         }
         #endif

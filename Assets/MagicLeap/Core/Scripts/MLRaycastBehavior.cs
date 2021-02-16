@@ -144,26 +144,6 @@ namespace MagicLeap.Core
         }
 
         /// <summary>
-        /// Starts up component.
-        /// </summary>
-        protected void Start()
-        {
-            MLRaycastStarterKit.Start();
-            MLEyesStarterKit.Start();
-            #if PLATFORM_LUMIN
-            #endif
-        }
-
-        /// <summary>
-        /// Cleans up component.
-        /// </summary>
-        protected void OnDestroy()
-        {
-            MLRaycastStarterKit.Stop();
-            MLEyesStarterKit.Stop();
-        }
-
-        /// <summary>
         /// Deals with what to do when the application is paused
         /// </summary>
         protected void OnApplicationPause(bool pause)
@@ -219,7 +199,7 @@ namespace MagicLeap.Core
                 _modeOnWorldRaycast = mode;
 
                 #if PLATFORM_LUMIN
-                if(!MLRaycastStarterKit.Raycast(_raycastParams, HandleOnReceiveRaycast).IsOk)
+                if(!MLRaycast.Raycast(_raycastParams, HandleOnReceiveRaycast).IsOk)
                 {
                     _isReady = true;
                 }

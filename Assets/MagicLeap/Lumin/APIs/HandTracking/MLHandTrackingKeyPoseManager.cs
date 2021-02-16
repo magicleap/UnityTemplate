@@ -52,7 +52,7 @@ namespace UnityEngine.XR.MagicLeap
                 this.hands[(int)MLHandTracking.HandType.Left] = leftHand;
                 this.hands[(int)MLHandTracking.HandType.Right] = rightHand;
 
-                // Start the Unity gesture subsystem.s
+                // Start the Unity gesture subsystem.
                 MLDevice.RegisterGestureSubsystem();
                 if (MLDevice.GestureSubsystem != null)
                 {

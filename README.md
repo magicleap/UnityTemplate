@@ -6,23 +6,23 @@ Hello, Cube!
 
 ### Unity
 
-2020.1.x
+2020.2.x
 
 ### Magic Leap Unity Package
 
-v0.24.2
+v0.25.0
 
 ### MLSDK
 
-v0.24.2
+v0.25.0
 
 ### LuminOS
 
-0.98.10+
+0.98.20+
 
 ## Instructions After Downloading
 
-1) Using Unity Hub, download Unity 2020.1.x and make sure Lumin support is checked during installation
+1) Using Unity Hub, download Unity 2020.2.x and make sure Lumin support is checked during installation
 2) `ADD` the project using Unity Hub
 3) Open the project using Unity Hub
 4) Under File > Build Settings, make sure the build target is Lumin

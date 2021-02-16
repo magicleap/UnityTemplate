@@ -18,7 +18,7 @@ namespace UnityEngine.XR.MagicLeap
     using System.Linq;
     using System.Runtime.InteropServices;
 
-    public sealed partial class MLInput : MLAPISingleton<MLInput>
+    public sealed partial class MLInput
     {
         /// <summary>
         /// See ml_input.h for additional comments.

@@ -48,32 +48,6 @@ namespace MagicLeap
         }
 
         /// <summary>
-        /// Calls Start on MLHandTrackingStarterKit.
-        /// </summary>
-        void Start()
-        {
-            MLResult result = MLHandTrackingStarterKit.Start();
-
-            #if PLATFORM_LUMIN
-            if (!result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: KeyPoseVisualizer failed on MLHandTrackingStarterKit.Start, disabling script. Reason: {0}", result);
-                _spriteRenderer.material.color = Color.red;
-                enabled = false;
-                return;
-            }
-            #endif
-        }
-
-        /// <summary>
-        /// Clean up.
-        /// </summary>
-        void OnDestroy()
-        {
-            MLHandTrackingStarterKit.Stop();
-        }
-
-        /// <summary>
         /// Updates color of sprite renderer material based on confidence of the KeyPose.
         /// </summary>
         void Update()
@@ -84,14 +58,14 @@ namespace MagicLeap
             if (_trackLeftHand)
             {
                 #if PLATFORM_LUMIN
-                confidenceLeft = GetKeyPoseConfidence(MLHandTrackingStarterKit.Left);
+                confidenceLeft = GetKeyPoseConfidence(MLHandTracking.Left);
                 #endif
             }
 
             if (_trackRightHand)
             {
                 #if PLATFORM_LUMIN
-                confidenceRight = GetKeyPoseConfidence(MLHandTrackingStarterKit.Right);
+                confidenceRight = GetKeyPoseConfidence(MLHandTracking.Right);
                 #endif
             }
 

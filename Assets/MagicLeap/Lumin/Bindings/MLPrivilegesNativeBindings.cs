@@ -20,7 +20,7 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Functionality to validate or query privileges from the system.
     /// </summary>
-    public sealed partial class MLPrivileges : MLAPISingleton<MLPrivileges>
+    public sealed partial class MLPrivileges
     {
         /// <summary>
         /// See ml_privileges.h for additional comments.

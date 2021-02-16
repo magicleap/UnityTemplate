@@ -12,6 +12,8 @@
 
 namespace UnityEngine.XR.MagicLeap
 {
+    using System;
+
     #if PLATFORM_LUMIN
     using UnityEngine.XR.MagicLeap.Internal;
     #endif
@@ -95,6 +97,45 @@ namespace UnityEngine.XR.MagicLeap
         protected string DllNotFoundError { get; set; } = "MLAPISingleton.BaseStart failed, {0} is only available on device or when running inside the Unity editor with Zero iteration enabled.";
 
         /// <summary>
+        /// Used to safely make native calls.
+        /// </summary>
+        /// <param name="resultCode">MLResult.Code enum that the wrappedPlatformCall should set.</param>
+        /// <param name="platformFunctionName">Name of the function for the log to print on failure.</param>
+        /// <param name="wrappedPlatformCall">Anonymous function for making your native call that you should set resultCode with.</param>
+        /// <param name="successCase">Predicate delegate for determining when a call was successful.</param>
+        /// <param name="checkInstance">Determines if this call should check for a valid instance before running.</param>
+        protected static void PlatformInvoke(out MLResult.Code resultCode, string platformFunctionName, Action wrappedPlatformCall, Predicate<MLResult.Code> successCase = null, bool checkInstance = true)
+        {
+            resultCode = MLResult.Code.UnspecifiedFailure;
+
+            if (checkInstance && !IsValidInstance())
+            {
+                MLPluginLog.ErrorFormat("{0} failed. Reason: {1} API has no valid instance.", platformFunctionName, typeof(T).Name);
+                return;
+            }
+
+            try
+            {
+                wrappedPlatformCall?.Invoke();
+                bool success = successCase != null ? successCase(resultCode) : MLResult.IsOK(resultCode);
+                if(!success)
+                {
+                    MLPluginLog.ErrorFormat("{0} failed. Reason: {1}", platformFunctionName, MLResult.CodeToString(resultCode));
+                }
+            }
+            catch (DllNotFoundException)
+            {
+                MLPluginLog.ErrorFormat("{0} failed. Reason: {1} API is currently available only on device.", platformFunctionName, typeof(T).Name);
+                resultCode = MLResult.Code.APIDLLNotFound;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                MLPluginLog.ErrorFormat("{0} failed. Reason: {1} API symbols not found.", platformFunctionName, typeof(T).Name);
+                resultCode = MLResult.Code.APISymbolsNotFound;
+            }
+        }
+
+        /// <summary>
         /// Stop the API
         /// </summary>
         public static void Stop()
@@ -158,8 +199,8 @@ namespace UnityEngine.XR.MagicLeap
                     if (result.IsOk)
                     {
                         // Everything started correctly register the update and increament _startCount
-                        MLDevice.Register(Instance.Update);
-                        MLDevice.RegisterOnApplicationPause(Instance.OnApplicationPause);
+                        MLDevice.RegisterUpdate(Instance.Update);
+                        MLDevice.RegisterApplicationPause(Instance.OnApplicationPause);
                         startCount++;
 
                         Instance.perceptionHandle = PerceptionHandle.Acquire();
@@ -230,8 +271,8 @@ namespace UnityEngine.XR.MagicLeap
                 --startCount;
                 if (startCount == 0)
                 {
-                    MLDevice.Unregister(this.Update);
-                    MLDevice.UnregisterOnApplicationPause(this.OnApplicationPause);
+                    MLDevice.UnregisterUpdate(this.Update);
+                    MLDevice.UnregisterApplicationPause(this.OnApplicationPause);
                     this.CleanupAPI(true);
 
                     if (this.perceptionHasStarted)

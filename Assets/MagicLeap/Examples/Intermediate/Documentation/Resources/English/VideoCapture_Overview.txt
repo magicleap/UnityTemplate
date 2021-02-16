@@ -1,13 +1,9 @@
-This example demonstrates the functionality of using the camera for video recording and raw video capturing.
+This example demonstrates the functionality of using the camera for video recording.
 
 Video Capture:
-Records a video and priview will be shown after recording stops.
-
-Raw Video Capture:
-The data received from the camera is processed with a posterization algorithm and then rendered to a texture for example purposes. Intrinsic properties of the camera are shown on the side when recording starts.
+Records a video and plays it back after recording stops.
 
 <color=#dbfb76><b>Privileges</b></color>
 - AudioCaptureMic
 - CameraCapture
 - ControllerPose
-- Computer Vision

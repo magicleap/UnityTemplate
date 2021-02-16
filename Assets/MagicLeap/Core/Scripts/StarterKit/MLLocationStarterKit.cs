@@ -25,14 +25,9 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
        public static MLResult Start()
         {
-            MLResult result = MLPrivilegesStarterKit.Start();
+            MLResult result;
 
             #if PLATFORM_LUMIN
-            if (!result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLLocationStarterKit failed starting MLPrivilegesStarterKit, Reason {0} ", result);
-                return result;
-            }
             result = MLPrivilegesStarterKit.RequestPrivileges(MLPrivileges.Id.FineLocation, MLPrivileges.Id.CoarseLocation);
 
             if (result.Result != MLResult.Code.PrivilegeGranted)
@@ -40,8 +35,6 @@ namespace MagicLeap.Core.StarterKit
                 Debug.LogErrorFormat("Error: MLLocationStarterKit failed requesting privileges, reason {0} ", result);
                 return result;
             }
-
-            MLPrivilegesStarterKit.Stop();
 
             result = MLLocation.Start();
 

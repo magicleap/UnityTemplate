@@ -338,7 +338,7 @@ namespace UnityEngine.XR.MagicLeap
             /// <param name="binding">The binding to add.</param>
             public void AddBinding(IBinding binding)
             {
-                if (binding.PCF == this && !this.bindings.Contains(binding))
+                if (!this.bindings.Contains(binding))
                 {
                     this.bindings.Add(binding);
                 }
@@ -350,7 +350,7 @@ namespace UnityEngine.XR.MagicLeap
             /// <param name="binding">The binding to remove.</param>
             public void RemoveBinding(IBinding binding)
             {
-                if (binding.PCF == this && this.bindings.Contains(binding))
+                if (this.bindings.Contains(binding))
                 {
                     this.bindings.Remove(binding);
                 }
@@ -410,8 +410,9 @@ namespace UnityEngine.XR.MagicLeap
 
                             if (MLPersistentCoordinateFrames.IsLocalized)
                             {
-                                if (MagicLeapNativeBindings.UnityMagicLeap_TryGetPose(this.CFUID, out this.pose))
+                                if (MagicLeapNativeBindings.UnityMagicLeap_TryGetPose(this.CFUID, out Pose newPose))
                                 {
+                                    this.Pose = newPose;
                                     result = this.UpdateState();
 
                                     if (!result.IsOk)

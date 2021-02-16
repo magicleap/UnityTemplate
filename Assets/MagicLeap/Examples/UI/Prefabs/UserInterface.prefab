@@ -3163,7 +3163,7 @@ MonoBehaviour:
             m_IntArgument: 0
             m_FloatArgument: 0
             m_StringArgument: 
-            m_BoolArgument: 1
+            m_BoolArgument: 0
           m_CallState: 2
         - m_Target: {fileID: 9144045080410469230}
           m_TargetAssemblyTypeName: 
@@ -3176,7 +3176,7 @@ MonoBehaviour:
             m_FloatArgument: 0
             m_StringArgument: 
             m_BoolArgument: 1
-          m_CallState: 2
+          m_CallState: 0
         - m_Target: {fileID: 9144045080410469230}
           m_TargetAssemblyTypeName: 
           m_MethodName: ToggleThreshold
@@ -3199,7 +3199,7 @@ MonoBehaviour:
             m_IntArgument: 0
             m_FloatArgument: 0
             m_StringArgument: 
-            m_BoolArgument: 1
+            m_BoolArgument: 0
           m_CallState: 2
 --- !u!114 &9144045080254698386
 MonoBehaviour:
@@ -4378,9 +4378,11 @@ MonoBehaviour:
   _positionSmoothTime: 0.5
   _rotationSmoothTime: 0.5
   _lookDirection: 2
-  _placeOnAwake: 0
+  _placeOnAwake: 1
   _placeOnUpdate: 1
   _lockZRotation: 1
+  _lockXRotation: 0
+  _lockToXZPlane: 0
   _useThreshold: 1
   _movementThreshold: {x: 45, y: 10}
   _distanceThreshold: 0.15

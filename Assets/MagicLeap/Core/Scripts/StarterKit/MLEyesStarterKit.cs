@@ -55,15 +55,7 @@ namespace MagicLeap.Core.StarterKit
             get
             {
                 #if PLATFORM_LUMIN
-                if (MLEyes.IsStarted)
-                {
-                    return MLEyes.FixationPoint;
-                }
-                else
-                {
-                    Debug.LogError("Error: MLEyesStarterKit.FixationPoint failed because MLEyes was not started.");
-                    return Vector3.zero;
-                }
+                return MLEyes.FixationPoint;
                 #else
                 return Vector3.zero;
                 #endif
@@ -78,49 +70,11 @@ namespace MagicLeap.Core.StarterKit
             get
             {
                 #if PLATFORM_LUMIN
-                if (MLEyes.IsStarted)
-                {
-                    return MLEyes.CalibrationStatus.ToString();
-                }
-                else
-                {
-                    Debug.LogError("Error: MLEyesStarterKit.CalibrationStatus failed because MLEyes was not started.");
-                    return "";
-                }
+                return MLEyes.CalibrationStatus.ToString();
                 #else
                 return string.Empty;
                 #endif
             }
-        }
-
-        /// <summary>
-        // Starts up MLEyes
-        /// </summary>
-        public static MLResult Start()
-        {
-            #if PLATFORM_LUMIN
-            _result = MLEyes.Start();
-
-            if (!_result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLEyesStarterKit failed starting MLEyes. Reason: {0}", _result);
-            }
-            #endif
-
-            return _result;
-        }
-
-        /// <summary>
-        /// Stops MLEyes if it has been started
-        /// </summary>
-        public static void Stop()
-        {
-            #if PLATFORM_LUMIN
-            if (MLEyes.IsStarted)
-            {
-                MLEyes.Stop();
-            }
-            #endif
         }
     }
 }

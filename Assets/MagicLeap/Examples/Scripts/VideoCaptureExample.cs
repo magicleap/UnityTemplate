@@ -39,12 +39,7 @@ namespace MagicLeap
         [SerializeField, Tooltip("Refrence to the Video Capture Visualizer gameobject")]
         private VideoCaptureVisualizer _videoCaptureVisualizer = null;
 
-        [SerializeField, Tooltip("Refrence to the Raw Video Capture Visualizer gameobject")]
-        private RawVideoCaptureVisualizer _rawVideoCaptureVisualizer = null;
-
         private const string _validFileFormat = ".mp4";
-
-        private string _intrinsicValuesText = null;
 
         private const float _minRecordingTime = 1.0f;
 
@@ -64,21 +59,11 @@ namespace MagicLeap
         private bool _appPaused = false;
         #pragma warning restore 414
 
-        #if PLATFORM_LUMIN
-        private event Action<MLCamera.ResultExtras, MLCamera.YUVFrameInfo, MLCamera.FrameMetadata> OnRawVideoDataReceived = null;
-        #endif
-
         #pragma warning disable 414
         private event Action OnVideoCaptureStarted = null;
 
         private event Action<string> OnVideoCaptureEnded = null;
-
-        private event Action OnRawVideoCaptureStarted = null;
-
-        private event Action OnRawVideoCaptureEnded = null;
         #pragma warning restore 414
-
-        private bool _rawVideoCaptureMode = false;
 
         /// <summary>
         /// Validate that _maxRecordingTime is not less than minimum possible.
@@ -119,17 +104,73 @@ namespace MagicLeap
             #if PLATFORM_LUMIN
             // Before enabling the Camera, the scene must wait until the privileges have been granted.
             _privilegeRequester.OnPrivilegesDone += HandlePrivilegesDone;
+
+            MLCamera.OnCameraConnected += OnCameraConnected;
+            MLCamera.OnCameraDisconnected += OnCameraDisconnected;
+
+            MLCamera.OnCameraCaptureStarted += OnCameraCaptureStarted;
+            MLCamera.OnCameraCaptureCompleted +=OnCameraCaptureCompleted;
             #endif
 
             OnVideoCaptureStarted += _videoCaptureVisualizer.OnCaptureStarted;
             OnVideoCaptureEnded += _videoCaptureVisualizer.OnCaptureEnded;
-            OnRawVideoCaptureStarted += _rawVideoCaptureVisualizer.OnCaptureStarted;
-            OnRawVideoCaptureEnded += _rawVideoCaptureVisualizer.OnCaptureEnded;
-
-            #if PLATFORM_LUMIN
-            OnRawVideoDataReceived += _rawVideoCaptureVisualizer.OnRawCaptureDataReceived;
-            #endif
         }
+
+        #if PLATFORM_LUMIN
+        private void OnCameraConnected(MLResult result)
+        {
+            if (result.IsOk)
+            {
+                _isCameraConnected = true;
+            }
+            else
+            {
+                Debug.LogErrorFormat("Error: RawVideoCapturePreviewExample failed to connect camera. Error Code: {0}", MLCamera.GetErrorCode().ToString());
+            }
+        }
+
+        private void OnCameraDisconnected(MLResult result)
+        {
+            _isCameraConnected = false;
+        }
+
+        private void OnCameraCaptureStarted(MLResult result, string pathName)
+        {
+            if (result.IsOk)
+            {
+                _isCapturing = true;
+                _captureStartTime = Time.time;
+                _captureFilePath = pathName;
+                OnVideoCaptureStarted.Invoke();
+            }
+            else
+            {
+                Debug.LogErrorFormat("Error: VideoCaptureExample failed to start video capture for {0}. Reason: {1}", pathName, MLCamera.GetErrorCode().ToString());
+            }
+        }
+
+        private void OnCameraCaptureCompleted(MLResult result)
+        {
+            if (result.IsOk)
+            {
+                // If we did not record long enough make sure our path is marked as invalid to avoid trying to load invalid file.
+                if (Time.time - _captureStartTime < _minRecordingTime)
+                {
+                    _captureFilePath = null;
+                }
+
+                OnVideoCaptureEnded.Invoke(_captureFilePath);
+
+                _isCapturing = false;
+                _captureStartTime = 0;
+                _captureFilePath = null;
+            }
+            else
+            {
+                Debug.LogErrorFormat("Error: VideoCaptureExample failed to end video capture. Error Code: {0}", MLCamera.GetErrorCode().ToString());
+            }
+        }
+        #endif
 
         void Update()
         {
@@ -152,7 +193,6 @@ namespace MagicLeap
         {
             #if PLATFORM_LUMIN
             MLInput.OnControllerButtonDown -= OnButtonDown;
-            MLInput.OnTriggerDown -= OnTriggerDown;
             #endif
 
             if (_isCameraConnected)
@@ -192,14 +232,7 @@ namespace MagicLeap
 
                     if (_isCapturing)
                     {
-                        if (_rawVideoCaptureMode)
-                        {
-                            OnRawVideoCaptureEnded.Invoke();
-                        }
-                        else
-                        {
-                            OnVideoCaptureEnded.Invoke(_captureFilePath);
-                        }
+                        OnVideoCaptureEnded.Invoke(_captureFilePath);
                     }
 
                     _isCapturing = false;
@@ -209,7 +242,6 @@ namespace MagicLeap
                 }
 
                 MLInput.OnControllerButtonDown -= OnButtonDown;
-                MLInput.OnTriggerDown -= OnTriggerDown;
                 #endif
             }
         }
@@ -225,11 +257,13 @@ namespace MagicLeap
 
             OnVideoCaptureStarted -= _videoCaptureVisualizer.OnCaptureStarted;
             OnVideoCaptureEnded -= _videoCaptureVisualizer.OnCaptureEnded;
-            OnRawVideoCaptureStarted -= _rawVideoCaptureVisualizer.OnCaptureStarted;
-            OnRawVideoCaptureEnded -= _rawVideoCaptureVisualizer.OnCaptureEnded;
 
             #if PLATFORM_LUMIN
-            OnRawVideoDataReceived -= _rawVideoCaptureVisualizer.OnRawCaptureDataReceived;
+            MLCamera.OnCameraCaptureStarted -= OnCameraCaptureStarted;
+            MLCamera.OnCameraCaptureCompleted -= OnCameraCaptureCompleted;
+
+            MLCamera.OnCameraConnected -= OnCameraConnected;
+            MLCamera.OnCameraDisconnected -= OnCameraDisconnected;
             #endif
         }
 
@@ -238,24 +272,9 @@ namespace MagicLeap
         /// </summary>
         public void StartCapture()
         {
-            if(_rawVideoCaptureMode)
-            {
-                StartRawCapture();
-                return;
-            }
-
             string fileName = System.DateTime.Now.ToString("MM_dd_yyyy__HH_mm_ss") + _validFileFormat;
-            StartCapture(fileName);
-        }
-
-        /// <summary>
-        /// Start capturing video to input filename.
-        /// </summary>
-        /// <param name="fileName">File path to write the video to.</param>
-        public void StartCapture(string fileName)
-        {
             #if PLATFORM_LUMIN
-            if(!_isCapturing && MLCamera.IsStarted && _isCameraConnected)
+            if(!_isCapturing && _isCameraConnected)
             {
                 // Check file fileName extensions
                 string extension = System.IO.Path.GetExtension(fileName);
@@ -268,18 +287,7 @@ namespace MagicLeap
 
                 string pathName = System.IO.Path.Combine(Application.persistentDataPath, fileName);
 
-                MLResult result = MLCamera.StartVideoCapture(pathName);
-                if (result.IsOk)
-                {
-                    _isCapturing = true;
-                    _captureStartTime = Time.time;
-                    _captureFilePath = pathName;
-                    OnVideoCaptureStarted.Invoke();
-                }
-                else
-                {
-                    Debug.LogErrorFormat("Error: VideoCaptureExample failed to start video capture for {0}. Reason: {1}", fileName, MLCamera.GetErrorCode().ToString());
-                }
+                MLCamera.StartVideoCaptureAsync(pathName);
             }
             else
             {
@@ -290,70 +298,14 @@ namespace MagicLeap
         }
 
         /// <summary>
-        /// Start capturing raw video.
-        /// </summary>
-        public void StartRawCapture()
-        {
-            #if PLATFORM_LUMIN
-            if (!_isCapturing && MLCamera.IsStarted && _isCameraConnected)
-            {
-                MLResult result = MLCamera.StartRawVideoCapture();
-                if (result.IsOk)
-                {
-                    _isCapturing = true;
-                    _captureStartTime = Time.time;
-                    OnRawVideoCaptureStarted.Invoke();
-                    SetupCameraIntrinsics();
-                }
-                else
-                {
-                    Debug.LogErrorFormat("Error: VideoCaptureExample failed to start raw video capture. Reason: {1}", MLCamera.GetErrorCode().ToString());
-                }
-            }
-            else
-            {
-                Debug.LogErrorFormat("Error: VideoCaptureExample failed to start raw video capture.");
-            }
-            #endif
-        }
-
-        /// <summary>
         /// Stop capturing video.
         /// </summary>
-        public void EndCapture(bool captureCanceled = false)
+        public void EndCapture()
         {
             if (_isCapturing)
             {
                 #if PLATFORM_LUMIN
-                MLResult result = MLCamera.StopVideoCapture();
-                if (result.IsOk)
-                {
-                    // If we did not record long enough make sure our path is marked as invalid to avoid trying to load invalid file.
-                    if (Time.time - _captureStartTime < _minRecordingTime)
-                    {
-                        _captureFilePath = null;
-                    }
-
-                    if(!captureCanceled)
-                    {
-                        if (_rawVideoCaptureMode)
-                        {
-                            OnRawVideoCaptureEnded.Invoke();
-                        }
-                        else
-                        {
-                            OnVideoCaptureEnded.Invoke(_captureFilePath);
-                        }
-                    }
-
-                    _isCapturing = false;
-                    _captureStartTime = 0;
-                    _captureFilePath = null;
-                }
-                else
-                {
-                    Debug.LogErrorFormat("Error: VideoCaptureExample failed to end video capture. Error Code: {0}", MLCamera.GetErrorCode().ToString());
-                }
+                MLCamera.StopVideoCaptureAsync();
                 #endif
             }
             else
@@ -373,21 +325,9 @@ namespace MagicLeap
                  LocalizeManager.GetString(ControllerStatus.Text));
 
             _statusText.text += string.Format("\n<color=#dbfb76><b>{0}</b></color>:\n", LocalizeManager.GetString("VideoData"));
-
-            if (_rawVideoCaptureMode)
-            {
-                _statusText.text += string.Format("{0}: {1}\n",
-                    LocalizeManager.GetString("Mode"),
-                    LocalizeManager.GetString("RawVideoCapture"));
-
-                _statusText.text += _intrinsicValuesText;
-            }
-            else
-            {
-                _statusText.text += string.Format("{0}: {1}\n",
-                    LocalizeManager.GetString("Mode"),
-                    LocalizeManager.GetString("VideoCapture"));
-            }
+            _statusText.text += string.Format("{0}: {1}\n",
+                LocalizeManager.GetString("Mode"),
+                LocalizeManager.GetString("VideoCapture"));
         }
 
         /// <summary>
@@ -397,26 +337,7 @@ namespace MagicLeap
         private void EnableMLCamera()
         {
             #if PLATFORM_LUMIN
-            MLResult result = MLCamera.Start();
-            if (result.IsOk)
-            {
-                result = MLCamera.Connect();
-                if(_rawVideoCaptureMode)
-                {
-                    MLCamera.OnRawVideoFrameAvailableYUV += OnRawCaptureDataReceived;
-                }
-                else
-                {
-                    _rawVideoCaptureVisualizer.OnRawCaptureEnded();
-                }
-                _isCameraConnected = true;
-            }
-            else
-            {
-                Debug.LogErrorFormat("Error: VideoCaptureExample failed starting MLCamera, disabling script. Reason: {0}", result);
-                enabled = false;
-                return;
-            }
+            MLCamera.ConnectAsync();
             #endif
         }
 
@@ -433,14 +354,7 @@ namespace MagicLeap
                 {
                     EndCapture();
                 }
-                MLCamera.Disconnect();
-                _isCameraConnected = false;
-                MLCamera.Stop();
-
-                if(_rawVideoCaptureMode)
-                {
-                    MLCamera.OnRawVideoFrameAvailableYUV -= OnRawCaptureDataReceived;
-                }
+                MLCamera.DisconnectAsync();
             }
             #endif
         }
@@ -455,7 +369,6 @@ namespace MagicLeap
                 EnableMLCamera();
                 #if PLATFORM_LUMIN
                 MLInput.OnControllerButtonDown += OnButtonDown;
-                MLInput.OnTriggerDown += OnTriggerDown;
                 #endif
                 _hasStarted = true;
             }
@@ -493,23 +406,11 @@ namespace MagicLeap
                 _isCameraConnected = true;
 
                 MLInput.OnControllerButtonDown += OnButtonDown;
-                MLInput.OnTriggerDown += OnTriggerDown;
             }
             else
             {
                 EnableCapture();
             }
-        }
-
-        /// <summary>
-        /// Handles the event for raw capture data recieved, and forwards it to any listeners.
-        /// </summary>
-        /// <param name="extras">Contains timestamp to use with GetFramePose, also forwarded to listeners.</param>
-        /// <param name="frameData">Forwarded to listeners.</param>
-        /// <param name="frameMetadata">Forwarded to listeners.</param>
-        private void OnRawCaptureDataReceived(MLCamera.ResultExtras extras, MLCamera.YUVFrameInfo frameData, MLCamera.FrameMetadata frameMetadata)
-        {
-            OnRawVideoDataReceived?.Invoke(extras, frameData, frameMetadata);
         }
         #endif
 
@@ -532,77 +433,5 @@ namespace MagicLeap
                 }
             }
         }
-
-        private void OnTriggerDown(byte controllerId, float value)
-        {
-            if (_controllerConnectionHandler.IsControllerValid(controllerId))
-            {
-                if (_isCapturing)
-                {
-                    EndCapture(true);
-                }
-
-                if (_rawVideoCaptureMode)
-                {
-                    #if PLATFORM_LUMIN
-                    MLCamera.OnRawVideoFrameAvailableYUV -= OnRawCaptureDataReceived;
-                    _rawVideoCaptureVisualizer.OnRawCaptureEnded();
-                    #endif
-                }
-                else
-                {
-                    #if PLATFORM_LUMIN
-                    MLCamera.OnRawVideoFrameAvailableYUV += OnRawCaptureDataReceived;
-                    _videoCaptureVisualizer.DisablePreview();
-
-                    #endif
-                }
-                _rawVideoCaptureMode = !_rawVideoCaptureMode;
-            }
-        }
-
-        /// <summary>
-        /// Setup the text field for camera intrinsic values.
-        /// Precondition: MLCamera must be successfully started.
-        /// </summary>
-        void SetupCameraIntrinsics()
-        {
-            #if PLATFORM_LUMIN
-            MLCamera.IntrinsicCalibrationParameters parameters;
-            MLResult result = MLCamera.GetIntrinsicCalibrationParameters(out parameters);
-            if (result.IsOk)
-            {
-                _intrinsicValuesText = CalibrationParametersToString(parameters);
-            }
-            else
-            {
-                Debug.LogErrorFormat("Error: VideoCaptureExample failed to GetIntrinsicCalibrationParameters. Reason: {0}", result);
-            }
-            #endif
-        }
-
-        #if PLATFORM_LUMIN
-        /// <summary>
-        /// Convert camera calibration parameters to a string.
-        /// </summary>
-        /// <param name="parameters">The camera calibration values to pull from.</param>
-        static string CalibrationParametersToString(MLCamera.IntrinsicCalibrationParameters parameters)
-        {
-            StringBuilder b = new StringBuilder();
-            b.AppendFormat("\n <color=#dbfb76><b>{0}  {1}:</b></color>", LocalizeManager.GetString("Camera"), LocalizeManager.GetString("IntrinsicValues"))
-                .AppendFormat("\n   {0}: {1}", LocalizeManager.GetString("Width"), parameters.Width)
-                .AppendFormat("\n   {0}: {1}", LocalizeManager.GetString("Height"), parameters.Height)
-                .AppendFormat("\n   {0}: {1}", LocalizeManager.GetString("FocalLength"), parameters.FocalLength)
-                .AppendFormat("\n   {0}: {1}", LocalizeManager.GetString("PrincipalPoint"), parameters.PrincipalPoint)
-                .AppendFormat("\n   {0}: {1}", LocalizeManager.GetString("FOV"), parameters.FOV)
-                .AppendFormat("\n   {0}:", LocalizeManager.GetString("DistortionCoeff"));
-            for (int i = 0; i < parameters.Distortion.Length; ++i)
-            {
-                b.AppendFormat("\n   [{0}]: {1}", i, parameters.Distortion[i]);
-            }
-            return b.ToString();
-        }
-         #endif
-
 }
 }

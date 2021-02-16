@@ -16,7 +16,9 @@ namespace UnityEngine.XR.MagicLeap.Native
 {
     using System;
     using System.Collections;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Threading;
     using UnityEngine;
 
     /// <summary>
@@ -28,6 +30,46 @@ namespace UnityEngine.XR.MagicLeap.Native
         /// A concurrent queue handles the dispatched callbacks in a thread-safe way.
         /// </summary>
         private static System.Collections.Concurrent.ConcurrentQueue<Dispatcher> actionQueue = new System.Collections.Concurrent.ConcurrentQueue<Dispatcher>();
+
+        /// <summary>
+        /// The concurrent queue for actions to execute on the main thread.
+        /// </summary>
+        private static System.Collections.Concurrent.ConcurrentQueue<System.Action> mainActionQueue = new System.Collections.Concurrent.ConcurrentQueue<System.Action>();
+
+        /// <summary>
+        /// The worker thread
+        /// </summary>
+        private static System.Threading.Thread thread = null;
+
+        /// <summary>
+        /// The concurrent queue of itemized work items that will execute on the worker thread.
+        /// </summary>
+        private static ConcurrentQueue<Func<bool>> itemizedWork = new ConcurrentQueue<Func<bool>>();
+
+        /// <summary>
+        /// A method that schedules a callback on the worker thread.
+        /// </summary>
+        /// <param name="function">Function to call. Return TRUE when processing is done, FALSE to be placed back in the queue to be called again at a later time.</param>
+        public static void ScheduleWork(Func<bool> function)
+        {
+            itemizedWork.Enqueue(function);
+        }
+
+        /// <summary>
+        /// A method that schedules a callback on the main thread.
+        /// </summary>
+        /// <param name="callback">A callback function to be called when the action is invoked </param>
+        public static void ScheduleMain(System.Action callback)
+        {
+            if (MLDevice.MainThreadId != -1 && MLDevice.MainThreadId == System.Threading.Thread.CurrentThread.ManagedThreadId)
+            {
+                callback();
+            }
+            else
+            {
+                mainActionQueue.Enqueue(callback);
+            }
+        }
 
         /// <summary>
         /// A method that queues an action without a payload
@@ -43,6 +85,23 @@ namespace UnityEngine.XR.MagicLeap.Native
                     actionQueue.Enqueue(newDispatch);
                 };
 
+                call();
+            }
+        }
+
+        /// <summary>
+        /// A method that queues an action without a payload
+        /// </summary>
+        /// <param name="callback">A callback function to be called when the action is invoked </param>
+        public static void Call(System.Action callback)
+        {
+            if (callback != null)
+            {
+                System.Action call = delegate
+                {
+                    DispatchNoPayload newDispatch = new DispatchNoPayload(callback);
+                    actionQueue.Enqueue(newDispatch);
+                };
                 call();
             }
         }
@@ -119,10 +178,22 @@ namespace UnityEngine.XR.MagicLeap.Native
         public static void DispatchAll()
         {
             Dispatcher callbacks;
+            System.Action action;
 
             while (actionQueue.TryDequeue(out callbacks))
             {
                 callbacks.Dispatch();
+            }
+
+            while (mainActionQueue.TryDequeue(out action))
+            {
+                action();
+            }
+
+            if (thread == null && !itemizedWork.IsEmpty)
+            {
+                thread = new Thread(ExecuteBackgroundThread);
+                thread.Start();
             }
         }
 
@@ -154,6 +225,36 @@ namespace UnityEngine.XR.MagicLeap.Native
             }
 
             return Delegate.CreateDelegate(typeof(T), delegates[0].Target, delegates[0].Method) as T;
+        }
+
+        /// <summary>
+        /// Static method that executes the background worker thread.
+        /// </summary>
+        /// <param name="obj">Optional object</param>
+        private static void ExecuteBackgroundThread(object obj)
+        {
+            Thread.CurrentThread.IsBackground = true;
+
+            while (true)
+            {
+                Func<bool> function;
+
+                if (itemizedWork.TryDequeue(out function))
+                {
+                    bool result = function();
+
+                    if (!result)
+                    {
+                        // Not done yet. Put it at the end of the queue to try again later.
+                        itemizedWork.Enqueue(function);
+                    }
+                }
+                else
+                {
+                    // Yield a reasonable timeslice.
+                    Thread.Sleep(5);
+                }
+            }
         }
 
         /// <summary>

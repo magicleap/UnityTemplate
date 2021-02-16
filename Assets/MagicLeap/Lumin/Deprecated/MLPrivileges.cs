@@ -19,36 +19,65 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Functionality to validate or query privileges from the system.
     /// </summary>
-    public sealed partial class MLPrivileges : MLAPISingleton<MLPrivileges>
+    public sealed partial class MLPrivileges
     {
-        [System.Obsolete("Please use MLPrivileges.RequestPrivilege with MLPrivileges.Id instead.", true)]
-        public static MLResult RequestPrivilege(MLPrivilegeId privilegeId)
+        [System.Obsolete("MLPrivileges API is now automatically started and stopped. There is no need to call the Start() and Stop() methods for this API, and they are now deprecated. See https://developer.magicleap.com/learn/guides/auto-api-changes for more info.", false)]
+        public static MLResult Start()
         {
-            return MLResult.Create(MLResult.Code.UnspecifiedFailure);
+            return MLResult.Create(MLResult.Code.Ok);
         }
 
-        [System.Obsolete("Please use MLPrivileges.CheckPrivilege with MLPrivileges.Id instead.", true)]
-        public static MLResult CheckPrivilege(MLPrivilegeId privilegeId)
+        [System.Obsolete("MLPrivileges API is now automatically started and stopped. There is no need to call the Start() and Stop() methods for this API, and they are now deprecated. See https://developer.magicleap.com/learn/guides/auto-api-changes for more info.", false)]
+        public static void Stop()
         {
-            return MLResult.Create(MLResult.Code.UnspecifiedFailure);
-        }
-
-        [System.Obsolete("Please use MLPrivileges.RequestPrivilegeAsync with MLPrivileges.Id instead.", true)]
-        public static MLResult RequestPrivilegeAsync(MLPrivilegeId privilegeId, CallbackDelegate callback)
-        {
-            return MLResult.Create(MLResult.Code.UnspecifiedFailure);
         }
 
         /// <summary>
-        /// Gets a readable version of the result code as an ASCII string.
+        /// Request the specified privileges. This may solicit consent from the end-user.
+        /// Note: The asynchronous callback occurs within the main thread.
         /// </summary>
-        /// <param name="result">The MLResult that should be converted.</param>
-        /// <returns>ASCII string containing a readable version of the result code.</returns>
-        [Obsolete("Please use MLResult.CodeToString(MLResult.Code) instead.", true)]
-        public static string GetResultString(MLResultCode result)
+        /// <param name="privilegeId">The privilege to request.</param>
+        /// <param name="callback">Callback to be executed when the privilege request has completed.</param>
+        /// <returns>
+        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if the privilege request is in progress.
+        /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if the callback is null.
+        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if the privilege system was not started.
+        /// Callback MLResult.Result will be <c>MLResult.Code.PrivilegeGranted</c> if the privilege is granted.
+        /// Callback MLResult.Result will be <c>MLResult.Code.PrivilegeNotGranted</c> if the privilege is denied.
+        /// </returns>
+        [Obsolete("Please use Task<MLResult> RequestPrivilegeAsync instead.", false)]
+        public static MLResult RequestPrivilegeAsync(MLPrivileges.Id privilegeId, CallbackDelegate callback)
         {
-            return "This function is deprecated. Use MLResult.CodeToString(MLResult.Code) instead.";
+            return Instance.RequestPrivilegeAsyncInternal(privilegeId, callback);
         }
+
+        private MLResult RequestPrivilegeAsyncInternal(MLPrivileges.Id privilegeId, CallbackDelegate callback)
+        {
+            if (callback == null)
+            {
+                return MLResult.Create(MLResult.Code.InvalidParam, "MLPrivileges.RequestPrivilegeAsync failed. Reason: Must send a valid callback.");
+            }
+
+            if (!this.currentRequests.ContainsKey(privilegeId))
+            {
+                IntPtr newRequest = IntPtr.Zero;
+
+                MLResult.Code resultCode = NativeBindings.MLPrivilegesRequestPrivilegeAsync(privilegeId, ref newRequest);
+                if (resultCode == MLResult.Code.Ok)
+                {
+                    RequestPrivilegeQuery newQuery = new RequestPrivilegeQuery(callback, newRequest, privilegeId);
+                    this.currentRequests.Add(privilegeId, newQuery);
+                }
+
+                return MLResult.Create(resultCode);
+            }
+            else
+            {
+                return MLResult.Create(MLResult.Code.Ok);
+            }
+        }
+
+
     }
 }
 

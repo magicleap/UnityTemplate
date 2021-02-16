@@ -120,21 +120,10 @@ namespace MagicLeap
         {
             #if PLATFORM_LUMIN
             // Assure that if the 'WorldReconstruction' privilege is missing, then it is logged for all users.
-            MLResult result = MLPrivilegesStarterKit.Start();
-            if (result.IsOk)
+            MLResult result = MLPrivilegesStarterKit.CheckPrivilege(MLPrivileges.Id.WorldReconstruction);
+            if (result.Result != MLResult.Code.PrivilegeGranted)
             {
-                result = MLPrivilegesStarterKit.CheckPrivilege(MLPrivileges.Id.WorldReconstruction);
-                if (result.Result != MLResult.Code.PrivilegeGranted)
-                {
-                    Debug.LogErrorFormat("Error: MeshingExample failed to create Mesh Subsystem due to missing 'WorldReconstruction' privilege. Please add to manifest. Disabling script.");
-                    enabled = false;
-                    return;
-                }
-                MLPrivilegesStarterKit.Stop();
-            }
-            else
-            {
-                Debug.LogErrorFormat("Error: MeshingExample failed starting MLPrivileges, disabling script. Reason: {0}", result);
+                Debug.LogErrorFormat("Error: MeshingExample failed to create Mesh Subsystem due to missing 'WorldReconstruction' privilege. Please add to manifest. Disabling script.");
                 enabled = false;
                 return;
             }

@@ -129,6 +129,16 @@ namespace UnityEngine.XR.MagicLeap.Native
                         return "MLResult_SnapshotPoseNotFound";
                     }
 
+                case MLResult.Code.APIDLLNotFound:
+                    {
+                        return "MLResult_APIDLLNotFound";
+                    }
+
+                case MLResult.Code.APISymbolsNotFound:
+                    {
+                        return "MLResult_APISymbolsNotFound";
+                    }
+
                 default:
                     {
                         return "MLResult_Unknown";
@@ -251,6 +261,8 @@ namespace UnityEngine.XR.MagicLeap.Native
             /// Z coordinate.
             /// </summary>
             public float Z;
+
+            public Vector3 ToVector3() => new Vector3(X, Y, Z);
         }
 
         /// <summary>

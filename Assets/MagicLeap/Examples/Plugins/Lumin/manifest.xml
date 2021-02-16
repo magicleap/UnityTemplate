@@ -58,6 +58,11 @@ Unity will automatically fill in areas marked as Placeholder from the Player Set
     <uses-privilege ml:name="ComputerVision" />
     <!--Examples using WifiStatusRead: Contacts, Location-->
     <uses-privilege ml:name="WifiStatusRead" />
+    <!--Examples using LocalAreaNetwork: WebRTC-->
+    <uses-privilege ml:name="LocalAreaNetwork" />
+    <!--Examples using ObjectData: FoundObjects-->
+    <uses-privilege ml:name="ObjectData" />
+
     <component ml:binary_name="bin/Player.elf" ml:name=".fullscreen" ml:type="Fullscreen" ml:visible_name="Placeholder">
       <icon ml:model_folder="Icon/Model" ml:portal_folder="Icon/Portal" />
     </component>

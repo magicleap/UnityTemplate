@@ -41,30 +41,19 @@ namespace MagicLeap.Core.StarterKit
         private static MLResult _result;
 
         /// <summary>
-        /// Starts up MLPlanes.
+        /// Start.
         /// </summary>
         public static MLResult Start()
         {
-            _result = MLPlanes.Start();
-            if (!_result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLPlanesStarterKit failed starting MLPlanes. Reason: {0}", _result);
-            }
-            return _result;
+            return MLResult.Create(MLResult.Code.Ok);
         }
         #endif
 
         /// <summary>
-        /// Stops MLPlanes if it has been started.
+        /// Stop.
         /// </summary>
         public static void Stop()
         {
-            #if PLATFORM_LUMIN
-            if (MLPlanes.IsStarted)
-            {
-                MLPlanes.Stop();
-            }
-            #endif
         }
 
         #if PLATFORM_LUMIN

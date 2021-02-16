@@ -63,7 +63,7 @@ namespace MagicLeap.Core.StarterKit
                 return MLHandTracking.Left;
             }
         }
-        #endif
+#endif
 
         /// <summary>
         /// Starts up MLHandTracking.
@@ -71,13 +71,9 @@ namespace MagicLeap.Core.StarterKit
         /// <param name="initializeValues">Bool that determines if MLHandTracking should automatically run with all poses and high filter levels.</param>
         public static MLResult Start(bool initializeValues = false)
         {
-            #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
 
-            MLResult _result = MLHandTracking.Start();
-            if (!_result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit failed starting MLHandTracking. Reason: {0}", _result);
-            }
+            MLResult _result = MLResult.Create(MLResult.Code.Ok);
 
             if (initializeValues)
             {
@@ -86,21 +82,18 @@ namespace MagicLeap.Core.StarterKit
                 success = EnableKeyPoses();
                 if (!success)
                 {
-                    MLHandTracking.Stop();
                     _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLHandTrackingStarterKit failed to start correctly because MLHandTrackingStarterKit.EnablePoses failed because MLHandTracking.KeyPoseManager.EnableKeyPoses failed.");
                 }
 
                 success = SetKeyPointsFilterLevel(MLHandTracking.KeyPointFilterLevel.ExtraSmoothed);
                 if (!success)
                 {
-                    MLHandTracking.Stop();
                     _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLHandTrackingStarterKit failed to start correctly because MLHandTrackingStarterKit.SetKeyPointsFilterLevel failed because MLHandTracking.KeyPoseManager.SetKeyPointsFilterLevel failed.");
                 }
 
                 success = SetPoseFilterLevel(MLHandTracking.PoseFilterLevel.ExtraRobust);
                 if (!success)
                 {
-                    MLHandTracking.Stop();
                     _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLHandTrackingStarterKit failed to start correctly because MLHandTrackingStarterKit.SetPoseFilterLevel failed because MLHandTracking.KeyPoseManager.SetPoseFilterLevel failed.");
                 }
             }
@@ -119,24 +112,14 @@ namespace MagicLeap.Core.StarterKit
         {
             bool success = false;
 
-            #if PLATFORM_LUMIN
-
-            if (MLHandTracking.IsStarted)
+#if PLATFORM_LUMIN
+            KeyPointFilterLevel = filterLevel;
+            success = MLHandTracking.KeyPoseManager.SetKeyPointsFilterLevel(KeyPointFilterLevel);
+            if (!success)
             {
-                KeyPointFilterLevel = filterLevel;
-                success = MLHandTracking.KeyPoseManager.SetKeyPointsFilterLevel(KeyPointFilterLevel);
-                if (!success)
-                {
-                    Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.SetKeyPointsFilterLevel failed because MLHandTracking.KeyPoseManager.SetKeyPointsFilterLevel failed.");
-                }
+                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.SetKeyPointsFilterLevel failed because MLHandTracking.KeyPoseManager.SetKeyPointsFilterLevel failed.");
             }
-
-            else
-            {
-                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.SetKeyPointsFilterLevel failed because MLHandTracking was not started.");
-            }
-
-            #endif
+#endif
 
             return success;
         }
@@ -149,24 +132,14 @@ namespace MagicLeap.Core.StarterKit
         {
             bool success = false;
 
-            #if PLATFORM_LUMIN
-
-            if (MLHandTracking.IsStarted)
+#if PLATFORM_LUMIN
+            KeyPoseFilterLevel = filterLevel;
+            success = MLHandTracking.KeyPoseManager.SetPoseFilterLevel(KeyPoseFilterLevel);
+            if (!success)
             {
-                KeyPoseFilterLevel = filterLevel;
-                success = MLHandTracking.KeyPoseManager.SetPoseFilterLevel(KeyPoseFilterLevel);
-                if (!success)
-                {
-                    Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.SetPoseFilterLevel failed because MLHandTracking.KeyPoseManager.SetPoseFilterLevel failed.");
-                }
+                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.SetPoseFilterLevel failed because MLHandTracking.KeyPoseManager.SetPoseFilterLevel failed.");
             }
-
-            else
-            {
-                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.SetPoseFilterLevel failed because MLHandTracking was not started.");
-            }
-
-            #endif
+#endif
 
             return success;
         }
@@ -180,27 +153,17 @@ namespace MagicLeap.Core.StarterKit
         {
             bool success = false;
 
-            #if PLATFORM_LUMIN
-
-            if (MLHandTracking.IsStarted)
+#if PLATFORM_LUMIN
+            if (poses.Length == 0)
             {
-                if (poses.Length == 0)
-                {
-                    poses = _allPoses;
-                }
-                success = MLHandTracking.KeyPoseManager.EnableKeyPoses(poses, true, exclusive);
-                if (!success)
-                {
-                    Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.EnablePoses failed because MLHandTracking.KeyPoseManager.EnableKeyPoses failed.");
-                }
+                poses = _allPoses;
             }
-
-            else
+            success = MLHandTracking.KeyPoseManager.EnableKeyPoses(poses, true, exclusive);
+            if (!success)
             {
-                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.SetPoseFilterLevel failed because MLHandTracking was not started.");
+                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.EnablePoses failed because MLHandTracking.KeyPoseManager.EnableKeyPoses failed.");
             }
-
-            #endif
+#endif
 
             return success;
         }
@@ -214,33 +177,23 @@ namespace MagicLeap.Core.StarterKit
         {
             bool success = false;
 
-            #if PLATFORM_LUMIN
-
-            if (MLHandTracking.IsStarted)
+#if PLATFORM_LUMIN
+            if (poses.Length == 0)
             {
-                if (poses.Length == 0)
-                {
-                    success = MLHandTracking.KeyPoseManager.DisableAllKeyPoses();
-                    if (!success)
-                    {
-                        Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.DisablePoses failed because MLHandTracking.KeyPoseManager.DisableAllKeyPoses failed.");
-                    }
-                    return success;
-                }
-
-                success = MLHandTracking.KeyPoseManager.EnableKeyPoses(poses, false);
+                success = MLHandTracking.KeyPoseManager.DisableAllKeyPoses();
                 if (!success)
                 {
-                    Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.DisablePoses failed because MLHandTracking.KeyPoseManager.EnableKeyPoses failed.");
+                    Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.DisablePoses failed because MLHandTracking.KeyPoseManager.DisableAllKeyPoses failed.");
                 }
+                return success;
             }
 
-            else
+            success = MLHandTracking.KeyPoseManager.EnableKeyPoses(poses, false);
+            if (!success)
             {
-                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.DisablePoses failed because MLHandTracking was not started.");
+                Debug.LogErrorFormat("Error: MLHandTrackingStarterKit.DisablePoses failed because MLHandTracking.KeyPoseManager.EnableKeyPoses failed.");
             }
-
-            #endif
+#endif
 
             return success;
         }
@@ -250,12 +203,7 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static void Stop()
         {
-            #if PLATFORM_LUMIN
-            if (MLHandTracking.IsStarted)
-            {
-                MLHandTracking.Stop();
-            }
-            #endif
+
         }
     }
 }

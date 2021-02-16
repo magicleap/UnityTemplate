@@ -57,6 +57,12 @@ namespace MagicLeap
         [SerializeField, Tooltip("Prevents the object from rotating around the Z axis.")]
         private bool _lockZRotation = false;
 
+        [SerializeField, Tooltip("Prevents the object from rotating around the X axis.")]
+        private bool _lockXRotation = false;
+
+        [SerializeField, Tooltip("Places the object in front of and at the same Y position as the camera.")]
+        private bool _lockToXZPlane = false;
+
         [SerializeField, Tooltip("When this is enabled, movement is restricted by threshold conditions.")]
         private bool _useThreshold = false;
 
@@ -75,6 +81,9 @@ namespace MagicLeap
 
         private bool _forceUpdate = false;
         private Camera _mainCamera = null;
+
+        private bool _shouldTryPlacementOnEnable = false;
+        private bool _didPlaceOnAwake = false;
 
         /// <summary>
         /// When enabled automatic placement will occur on each Update cycle.
@@ -105,6 +114,15 @@ namespace MagicLeap
             }
         }
 
+        private void OnEnable()
+        {
+            if (_shouldTryPlacementOnEnable && _placeOnAwake)
+            {
+                _shouldTryPlacementOnEnable = false;
+                StartCoroutine(UpdateTransformEndOfFrame());
+            }
+        }
+
         void Update()
         {
             if (!_placeOnAwake && _placeOnUpdate)
@@ -117,6 +135,14 @@ namespace MagicLeap
         {
             _positionSmoothTime = Mathf.Max(0.01f, _positionSmoothTime);
             _rotationSmoothTime = Mathf.Max(0.01f, _rotationSmoothTime);
+        }
+
+        private void OnDisable()
+        {
+            // If the game object was initially awake, causing the UpdateTransformEndOfFrame()
+            // coroutine to be queued, but before it could be called, the game object was disabled.
+            // In that case, retry placement when the game object is enabled again.
+            _shouldTryPlacementOnEnable = _placeOnAwake && !_didPlaceOnAwake;
         }
 
         void OnDestroy()
@@ -146,6 +172,7 @@ namespace MagicLeap
         {
             // Wait until the camera has finished the current frame.
             yield return new WaitForEndOfFrame();
+            _didPlaceOnAwake = true;
             UpdateTransform(_mainCamera);
         }
 
@@ -156,7 +183,8 @@ namespace MagicLeap
         {
             // Move the object in front of the camera with specified offsets.
             Vector3 offsetVector = (camera.transform.up * _heightOffset) + (camera.transform.right * _lateralOffset);
-            Vector3 targetPosition = (_useLocalSpace ? camera.transform.localPosition : camera.transform.position) + offsetVector + (camera.transform.forward * _distance);
+            Vector3 forwardVec = (_lockToXZPlane) ? new Vector3(camera.transform.forward.x, 0, camera.transform.forward.z).normalized : camera.transform.forward;
+            Vector3 targetPosition = (_useLocalSpace ? camera.transform.localPosition : camera.transform.position) + offsetVector + (forwardVec * _distance);
 
             if (_forceUpdate || !_useThreshold || Vector3.Distance((_useLocalSpace ? transform.localPosition : transform.position), _movePosition) > 0.01f ||
                 Quaternion.Angle(Quaternion.Euler((_useLocalSpace ? camera.transform.localEulerAngles.x : camera.transform.eulerAngles.x), 0, 0), Quaternion.Euler(_lastCameraEuler.x, 0, 0)) > _movementThreshold.y ||
@@ -216,6 +244,18 @@ namespace MagicLeap
                 else
                 {
                     transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y, 0);
+                }
+            }
+
+            if (_lockXRotation)
+            {
+                if (_useLocalSpace)
+                {
+                    transform.localRotation = Quaternion.Euler(0, transform.localRotation.eulerAngles.y, transform.localRotation.eulerAngles.z);
+                }
+                else
+                {
+                    transform.rotation = Quaternion.Euler(0, transform.rotation.eulerAngles.y, transform.rotation.eulerAngles.z);
                 }
             }
         }

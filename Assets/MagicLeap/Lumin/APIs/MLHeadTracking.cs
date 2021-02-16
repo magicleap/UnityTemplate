@@ -13,7 +13,9 @@
 namespace UnityEngine.XR.MagicLeap
 {
     using System;
+#if PLATFORM_LUMIN
     using UnityEngine.XR.MagicLeap.Native;
+#endif
 
     /// <summary>
     /// The MLHeadTracking API used to get head tracking state and triggered map events.

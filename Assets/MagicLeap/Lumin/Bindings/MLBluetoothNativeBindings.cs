@@ -19,7 +19,10 @@ namespace UnityEngine.XR.MagicLeap
     using Unity.Collections.LowLevel.Unsafe;
     using UnityEngine;
     using UnityEngine.XR.MagicLeap;
+
+#if PLATFORM_LUMIN
     using UnityEngine.XR.MagicLeap.Native;
+#endif
 
     /// <summary>
     /// Magic Leap Bluetooth Low Energy implementation for Unity

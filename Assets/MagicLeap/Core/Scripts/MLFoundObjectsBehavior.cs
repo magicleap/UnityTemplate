@@ -10,13 +10,11 @@
 // ---------------------------------------------------------------------
 // %BANNER_END%
 
-using System.Collections.Generic;
 using UnityEngine;
-
 #if PLATFORM_LUMIN
 using MagicLeap.Core.StarterKit;
-using UnityEngine.XR.MagicLeap;
 #endif
+using UnityEngine.XR.MagicLeap;
 
 namespace MagicLeap.Core
 {
@@ -25,29 +23,35 @@ namespace MagicLeap.Core
     /// </summary>
     public class MLFoundObjectsBehavior : MonoBehaviour
     {
-        #pragma warning disable 414
-        /// <summary>
-        /// When enabled will continuously query for new objects.
-        /// </summary>
         [SerializeField, Tooltip("When enabled this behaviour will continuously query for new objects.")]
         private bool _autoQuery = true;
-        #pragma warning restore 414
 
-        public delegate void QueryFoundObjectsResult(System.Guid id, Vector3 position, Quaternion rotation, Vector3 extents, List<KeyValuePair<string, string>> properties);
+        [Tooltip("Query frequency in seconds.")]
+        private float queryFrequency = 3.0f;
+
+        [SerializeField]
+        private MLFoundObjects.Query.Filter queryFilter = MLFoundObjects.Query.Filter.Create();
+
+#if PLATFORM_LUMIN
+        private Timer queryTimer;
+#endif
+
+        public delegate void OnFoundObjectsDelegate(MLFoundObjects.FoundObject[] foundObjects);
 
         /// <summary>
         /// Event for when a query has completed.
         /// </summary>
-        public event QueryFoundObjectsResult OnQueryFoundObjectsResult = delegate { };
+        public event OnFoundObjectsDelegate OnFoundObjects = delegate { };
 
         /// <summary>
         /// Starts up MLFoundObjectsToolkit.
         /// </summary>
         void Start()
         {
-            #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
             MLFoundObjectsStarterKit.Start();
-            #endif
+            queryTimer = new Timer(queryFrequency);
+#endif
         }
 
         /// <summary>
@@ -55,9 +59,9 @@ namespace MagicLeap.Core
         /// </summary>
         void OnDestroy()
         {
-            #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
             MLFoundObjectsStarterKit.Stop();
-            #endif
+#endif
         }
 
         /// <summary>
@@ -65,12 +69,13 @@ namespace MagicLeap.Core
         /// </summary>
         void Update()
         {
-            #if PLATFORM_LUMIN
-            if (_autoQuery && !MLFoundObjectsStarterKit.IsQuerying)
+#if PLATFORM_LUMIN
+            if (_autoQuery && queryTimer.LimitPassed)
             {
                 QueryFoundObjects();
+                queryTimer.Reset();
             }
-            #endif
+#endif
         }
 
         /// <summary>
@@ -79,22 +84,34 @@ namespace MagicLeap.Core
         /// <returns>Will return true if the request was successful.</returns>
         public bool QueryFoundObjects()
         {
-            #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
             if (MLFoundObjects.IsStarted)
             {
-                MLFoundObjects.GetObjects(HandleOnFoundObject);
+                MLFoundObjectsStarterKit.QueryFoundObjectsAsync(queryFilter, HandleOnFoundObjects);
                 return true;
             }
-            #endif
+#endif
 
             return false;
         }
 
-        #if PLATFORM_LUMIN
-        private void HandleOnFoundObject(MLFoundObjects.FoundObject foundObject, List<KeyValuePair<string, string>> properties)
+#if PLATFORM_LUMIN
+        /// <summary>
+        /// Handles when an array of found objects is returned by the API.
+        /// </summary>
+        /// <param name="result">MLResult of the query.</param>
+        /// <param name="foundObjects">Array of found objects returned by the query.</param>
+        private void HandleOnFoundObjects(MLResult result, MLFoundObjects.FoundObject[] foundObjects)
         {
-            OnQueryFoundObjectsResult?.Invoke(foundObject.Id, foundObject.Position, foundObject.Rotation, foundObject.Size, properties);
+            if(result.IsOk)
+            {
+                OnFoundObjects?.Invoke(foundObjects);
+            }
+            else
+            {
+                Debug.LogFormat("MLFoundObjects failed to find any objects. Reason: {0}", MLResult.CodeToString(result.Result));
+            }
         }
-        #endif
+#endif
     }
 }

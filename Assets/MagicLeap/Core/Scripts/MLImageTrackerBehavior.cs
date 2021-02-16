@@ -11,7 +11,6 @@
 // %BANNER_END%
 
 using UnityEngine;
-using MagicLeap.Core.StarterKit;
 using UnityEngine.XR.MagicLeap;
 
 namespace MagicLeap.Core
@@ -22,6 +21,11 @@ namespace MagicLeap.Core
     [AddComponentMenu("XR/MagicLeap/MLImageTrackerBehavior")]
     public class MLImageTrackerBehavior : MonoBehaviour
     {
+        /// <summary>
+        /// Cached tracking status.
+        /// </summary>
+        private MLImageTracker.Target.TrackingStatus status;
+
         /// <summary>
         /// Image that needs to be tracked.
         /// Do not resize the image, the aspect ratio of the image provided here
@@ -63,12 +67,12 @@ namespace MagicLeap.Core
                     return false;
                 }
 
-                return (_imageTarget.Status == MLImageTracker.Target.TrackingStatus.Tracked || _imageTarget.Status == MLImageTracker.Target.TrackingStatus.Unreliable);
+                return (this.status == MLImageTracker.Target.TrackingStatus.Tracked || this.status == MLImageTracker.Target.TrackingStatus.Unreliable);
             }
         }
 
         /// <summary>
-        /// The current status of the tracking state.
+        /// The current this.status of the tracking state.
         /// </summary>
         public MLImageTracker.Target.TrackingStatus TrackingStatus
         {
@@ -79,70 +83,44 @@ namespace MagicLeap.Core
                     return MLImageTracker.Target.TrackingStatus.NotTracked;
                 }
 
-                return _imageTarget.Status;
+                return this.status;
             }
         }
 
-        #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
+        /// <summary>
+        /// Delegate for status updates.
+        /// </summary>
+        public delegate void StatusUpdate(MLImageTracker.Target target, MLImageTracker.Target.Result result);
+
         /// <summary>
         /// Occurs when an existing image target is found.
-        /// The status of the MLImageTracker.Target.Result will indicate if tracking is unreliable.
+        /// The this.status of the MLImageTracker.Target.Result will indicate if tracking is unreliable.
         /// </summary>
-        public event MLImageTrackerStarterKit.MLImageTargetStarterKit.StatusUpdate OnTargetFound;
+        public event StatusUpdate OnTargetFound = delegate { };
 
         /// <summary>
         /// Occurs when the image target is lost.
         /// </summary>
-        public event MLImageTrackerStarterKit.MLImageTargetStarterKit.StatusUpdate OnTargetLost;
+        public event StatusUpdate OnTargetLost = delegate { };
 
         /// <summary>
         /// Occurs when the result gets updated for the image target and happens once every frame.
         /// </summary>
-        public event MLImageTrackerStarterKit.MLImageTargetStarterKit.StatusUpdate OnTargetUpdated;
-        #endif
+        public event StatusUpdate OnTargetUpdated = delegate { };
+#endif
 
         /// <summary>
-        /// Holds reference to the image target inside MLImageTrackerStarterKit.MLImageTargetStarterKit.
+        /// Holds reference to the image target inside MLImageTracker.Target.
         /// </summary>
-        private MLImageTrackerStarterKit.MLImageTargetStarterKit _imageTarget = null;
+        private MLImageTracker.Target _imageTarget = null;
 
         /// <summary>
         /// Starts the image tracker and adds the image target to the tracking system.
         /// </summary>
         void Start()
         {
-            #if PLATFORM_LUMIN
-            MLResult result = MLImageTrackerStarterKit.Start();
-            if (result.IsOk)
-            {
-                AddTarget();
-            }
-
-            else
-            {
-                Debug.LogErrorFormat("MLImageTrackerBehavior failed on MLImageTrackerStarterKit.Start. Reason: {0}", result);
-            }
-            #endif
-        }
-
-        /// <summary>
-        /// Cannot make the assumption that a privilege is still granted after
-        /// returning from pause. Return the application to the state where it
-        /// requests privileges needed.
-        /// </summary>
-        void OnApplicationPause(bool pause)
-        {
-            if (pause)
-            {
-                MLImageTrackerStarterKit.Stop();
-            }
-
-            #if PLATFORM_LUMIN
-            else if(MLDevice.IsReady() && _imageTarget != null)
-            {
-                MLImageTrackerStarterKit.Start();
-            }
-            #endif
+            AddTarget();
         }
 
         /// <summary>
@@ -150,8 +128,9 @@ namespace MagicLeap.Core
         /// </summary>
         void OnDestroy()
         {
-            MLImageTrackerStarterKit.RemoveTarget(gameObject.GetInstanceID().ToString());
-            MLImageTrackerStarterKit.Stop();
+#if PLATFORM_LUMIN
+            MLImageTracker.RemoveTarget(gameObject.GetInstanceID().ToString());
+#endif
         }
 
         /// <summary>
@@ -159,19 +138,15 @@ namespace MagicLeap.Core
         /// </summary>
         private void AddTarget()
         {
-            #if PLATFORM_LUMIN
-            _imageTarget = MLImageTrackerStarterKit.AddTarget(gameObject.GetInstanceID().ToString(), image, longerDimensionInSceneUnits, HandleAllTargetStatuses, isStationary);
+#if PLATFORM_LUMIN
+            _imageTarget = MLImageTracker.AddTarget(gameObject.GetInstanceID().ToString(), image, longerDimensionInSceneUnits, HandleAllTargetStatuses, isStationary);
 
             if (_imageTarget == null)
             {
                 Debug.LogErrorFormat("MLImageTrackerBehavior.AddTarget failed to add target {0} to the image tracker.", gameObject.name);
                 return;
             }
-
-            _imageTarget.OnFound += (MLImageTracker.Target target, MLImageTracker.Target.Result result) => { OnTargetFound?.Invoke(target, result); };
-            _imageTarget.OnLost += (MLImageTracker.Target target, MLImageTracker.Target.Result result) => { OnTargetLost?.Invoke(target, result); };
-            _imageTarget.OnUpdated += (MLImageTracker.Target target, MLImageTracker.Target.Result result) => { OnTargetUpdated?.Invoke(target, result); };
-            #endif
+#endif
         }
 
         /// <summary>
@@ -189,11 +164,11 @@ namespace MagicLeap.Core
                 return false;
             }
 
-            #if PLATFORM_LUMIN
-            longerDimension = _imageTarget.Target.GetTargetLongerDimension();
-            #else
+#if PLATFORM_LUMIN
+            longerDimension = _imageTarget.GetTargetLongerDimension();
+#else
             longerDimension = 0.0f;
-            #endif
+#endif
 
             return true;
         }
@@ -209,7 +184,7 @@ namespace MagicLeap.Core
         {
             MLResult result;
 
-            #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
             if (_imageTarget == null)
             {
                 result = MLResult.Create(MLResult.Code.InvalidParam, "Invalid image target");
@@ -217,28 +192,47 @@ namespace MagicLeap.Core
                 return result;
             }
 
-            result = _imageTarget.Target.SetTargetLongerDimension(longerDimension);
+            result = _imageTarget.SetTargetLongerDimension(longerDimension);
             if (result.IsOk)
             {
                 longerDimensionInSceneUnits = longerDimension;
             }
-            #endif
+#endif
 
             return result;
         }
 
-        #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
         /// <summary>
-        /// Handles all the image target's status updates. This is called every frame.
+        /// Handles all the image target's this.status updates. This is called every frame.
         /// </summary>
-        private void HandleAllTargetStatuses(MLImageTracker.Target imageTarget, MLImageTracker.Target.Result newResult)
+        private void HandleAllTargetStatuses(MLImageTracker.Target target, MLImageTracker.Target.Result result)
         {
+            if (result.Status != this.status)
+            {
+                this.status = result.Status;
+
+                if (this.status == MLImageTracker.Target.TrackingStatus.Tracked || this.status == MLImageTracker.Target.TrackingStatus.Unreliable)
+                {
+                    OnTargetFound(target, result);
+                }
+
+                else
+                {
+                    OnTargetLost(target, result);
+                }
+            }
+            else
+            {
+                OnTargetUpdated(target, result);
+            }
+
             if (autoUpdate)
             {
-                transform.position = newResult.Position;
-                transform.rotation = newResult.Rotation;
+                transform.position = result.Position;
+                transform.rotation = result.Rotation;
             }
         }
-        #endif
+#endif
     }
 }

@@ -2789,18 +2789,6 @@ namespace UnityEngine.XR.MagicLeap
             /// Gets or sets CEA608 caption preamble address code.
             /// </summary>
             public Cea608CaptionPAC[] PacStyles { get; set; }
-
-            /// <summary>
-            /// Gets byte array of UTF8 encoded characters to be displayed.
-            /// </summary>
-            [Obsolete("Please use Cea608CaptionLine.DisplayString instead.")]
-            public byte[] DisplayChars
-            {
-                get
-                {
-                    return Encoding.UTF8.GetBytes(this.DisplayString);
-                }
-            }
         }
 
         #endif

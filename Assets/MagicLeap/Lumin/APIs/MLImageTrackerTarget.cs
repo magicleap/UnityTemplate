@@ -25,7 +25,7 @@ namespace UnityEngine.XR.MagicLeap
     /// (image targets) in the physical world. It provides the position and
     /// orientation of the image targets in the physical world.
     /// </summary>
-    public sealed partial class MLImageTracker : MLAPISingleton<MLImageTracker>
+    public sealed partial class MLImageTracker
     {
         /// <summary>
         /// Manages the image target settings.

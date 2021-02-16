@@ -1,5 +1,6 @@
 {
     "name": "LuminUnity",
+    "rootNamespace": "",
     "references": [
         "GUID:28d8685fae23c21419ef42894cb9b075",
         "GUID:ec0144320e2ab8c42b9ce084651ff2a1",
@@ -15,5 +16,6 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": []
+    "versionDefines": [],
+    "noEngineReferences": false
 }

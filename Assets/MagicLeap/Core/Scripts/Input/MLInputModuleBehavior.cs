@@ -168,32 +168,12 @@ namespace UnityEngine.XR.MagicLeap
 
             SceneManager.activeSceneChanged += ChangedActiveScene;
 
-            // Eye Tracking
-            if (_pointerInput == PointerInputType.EyeTracking)
-            {
-                #if PLATFORM_LUMIN
-                MLResult result = MLEyes.Start();
-                if (!result.IsOk)
-                {
-                    Debug.LogErrorFormat("Error: MLInputModule failed starting MLEyes, disabling script. Reason: {0}", result);
-                    enabled = false;
-                    return;
-                }
-                #endif
-            }
-
             #if PLATFORM_LUMIN
             // Controllers
             if (!MLInput.IsStarted)
             {
                 MLInput.Configuration config = new MLInput.Configuration(true);
-                MLResult result = MLInput.Start(config);
-                if (!result.IsOk)
-                {
-                    Debug.LogErrorFormat("Error: MLInputModule failed starting MLInput, disabling script. Reason: {0}", result);
-                    enabled = false;
-                    return;
-                }
+                MLInput.SetConfig(config);
             }
             #endif
 
@@ -217,19 +197,10 @@ namespace UnityEngine.XR.MagicLeap
             base.OnDestroy();
 
             #if PLATFORM_LUMIN
-            if (MLInput.IsStarted)
-            {
-                MLInput.Stop();
-            }
-
             MLInput.OnControllerConnected -= HandleOnControllerConnected;
             MLInput.OnControllerDisconnected -= HandleOnControllerDisconnected;
             SceneManager.activeSceneChanged -= ChangedActiveScene;
 
-            if (MLEyes.IsStarted)
-            {
-                MLEyes.Stop();
-            }
             #endif
         }
 

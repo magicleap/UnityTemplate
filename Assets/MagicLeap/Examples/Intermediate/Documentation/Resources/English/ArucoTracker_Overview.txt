@@ -1,0 +1,7 @@
+This example demonstrates aruco marker tracking.
+Show your headset an aruco marker from the dictionary set on the MLArucoTrackerBehavior object. 
+You can find markers at https://chev.me/arucogen/
+
+<color=#dbfb76><b>Privileges</b></color>
+- CameraCapture
+- ControllerPose

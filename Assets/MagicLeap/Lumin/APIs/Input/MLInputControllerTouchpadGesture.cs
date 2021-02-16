@@ -19,7 +19,7 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Manages the input state for controllers, MCA and tablet devices.
     /// </summary>
-    public partial class MLInput : MLAPISingleton<MLInput>
+    public partial class MLInput
     {
         /// <summary>
         /// Contains state information for a controller.

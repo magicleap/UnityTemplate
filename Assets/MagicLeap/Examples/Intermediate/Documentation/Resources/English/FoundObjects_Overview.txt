@@ -1,0 +1,11 @@
+This example demonstrates object recognition.
+Look around your space for any framed and labeled objects.
+
+<color=#dbfb76><b>Privileges</b></color>
+- ObjectData
+- ControllerPose
+
+<i>To enable visibility outside of this application:</i>
+	- Go to <i>Device Settings</i> and select <i>Privacy and Security</i>
+	- Select <i>Mapping</i> from the left side menu
+	- Use the touchpad to scroll down and enable <i>View World Data</i> and <i>Include World Undestanding Data</i>

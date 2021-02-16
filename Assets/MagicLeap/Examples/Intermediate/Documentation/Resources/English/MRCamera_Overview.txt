@@ -1,0 +1,17 @@
+This example demonstrates capturing mixed reality content.
+
+
+
+
+
+
+
+
+
+
+
+
+
+<color=#dbfb76><b>Privileges</b></color>
+- CameraCapture
+- ControllerPose

@@ -21,7 +21,7 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Sends requests to create Rays intersecting world geometry and returns results through callbacks.
     /// </summary>
-    public partial class MLRaycast : MLAPISingleton<MLRaycast>
+    public partial class MLRaycast : MLAutoAPISingleton<MLRaycast>
     {
         #if PLATFORM_LUMIN
         /// <summary>
@@ -89,18 +89,6 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         #if PLATFORM_LUMIN
-        /// <summary>
-        /// Starts the World Rays API.
-        /// </summary>
-        /// <returns>
-        /// MLResult.Result will be MLResult.Code.Ok if successful.
-        /// MLResult.Result will be MLResult.Code.UnspecifiedFailure if failed due to internal error.
-        /// </returns>
-        public static MLResult Start()
-        {
-            CreateInstance();
-            return MLRaycast.BaseStart(true);
-        }
 
         /// <summary>
         /// Requests a ray cast with the given query parameters.
@@ -114,50 +102,38 @@ namespace UnityEngine.XR.MagicLeap
         /// </returns>
         public static MLResult Raycast(QueryParams query, OnRaycastResultDelegate callback)
         {
-            try
-            {
-                if (MLRaycast.IsValidInstance())
-                {
-                    if (query == null || callback == null)
-                    {
-                        MLPluginLog.ErrorFormat("MLRaycast.Raycast failed. Reason: Invalid input parameters.");
-                        return MLResult.Create(MLResult.Code.InvalidParam);
-                    }
-
-                    _instance.currentQuery.Position = MLConvert.FromUnity(query.Position);
-                    _instance.currentQuery.Direction = MLConvert.FromUnity(query.Direction, true, false);
-                    _instance.currentQuery.UpVector = MLConvert.FromUnity(query.UpVector, true, false);
-                    _instance.currentQuery.Width = query.Width;
-                    _instance.currentQuery.Height = query.Height;
-                    _instance.currentQuery.HorizontalFovDegrees = query.HorizontalFovDegrees;
-                    _instance.currentQuery.CollideWithUnobserved = query.CollideWithUnobserved;
-
-                    ulong queryHandle = MagicLeapNativeBindings.InvalidHandle;
-                    MLResult.Code resultCode = NativeBindings.MLRaycastRequest(_instance.trackerHandle, ref _instance.currentQuery, ref queryHandle);
-                    if (resultCode != MLResult.Code.Ok)
-                    {
-                        MLResult result = MLResult.Create(resultCode);
-                        MLPluginLog.ErrorFormat("MLRaycast.Raycast failed to request a new ray cast. Reason: {0}", result);
-                        return result;
-                    }
-
-                    _instance.pendingQueries.Add(queryHandle, callback);
-                    return MLResult.Create(MLResult.Code.Ok);
-                }
-                else
-                {
-                    MLPluginLog.ErrorFormat("MLRaycast.Raycast failed. Reason: No Instance for MLRaycast");
-                    return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLRaycast.Raycast failed. Reason: No Instance for MLRaycast");
-                }
-            }
-            catch (System.EntryPointNotFoundException)
-            {
-                MLPluginLog.Error("MLRaycast.Raycast failed. Reason: API symbols not found");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLRaycast.Raycast failed. Reason: API symbols not found");
-            }
+            return Instance.RaycastInternal(query, callback);
         }
 
-        #if !DOXYGEN_SHOULD_SKIP_THIS
+        private MLResult RaycastInternal(QueryParams query, OnRaycastResultDelegate callback)
+        {
+            if (query == null || callback == null)
+            {
+                MLPluginLog.ErrorFormat("MLRaycast.Raycast failed. Reason: Invalid input parameters.");
+                return MLResult.Create(MLResult.Code.InvalidParam);
+            }
+
+            this.currentQuery.Position = MLConvert.FromUnity(query.Position);
+            this.currentQuery.Direction = MLConvert.FromUnity(query.Direction, true, false);
+            this.currentQuery.UpVector = MLConvert.FromUnity(query.UpVector, true, false);
+            this.currentQuery.Width = query.Width;
+            this.currentQuery.Height = query.Height;
+            this.currentQuery.HorizontalFovDegrees = query.HorizontalFovDegrees;
+            this.currentQuery.CollideWithUnobserved = query.CollideWithUnobserved;
+
+            ulong queryHandle = MagicLeapNativeBindings.InvalidHandle;
+            MLResult.Code resultCode = NativeBindings.MLRaycastRequest(this.trackerHandle, ref this.currentQuery, ref queryHandle);
+            if (resultCode != MLResult.Code.Ok)
+            {
+                MLResult result = MLResult.Create(resultCode);
+                MLPluginLog.ErrorFormat("MLRaycast.Raycast failed to request a new ray cast. Reason: {0}", result);
+                return result;
+            }
+
+            this.pendingQueries.Add(queryHandle, callback);
+            return MLResult.Create(MLResult.Code.Ok);
+        }
+#if !DOXYGEN_SHOULD_SKIP_THIS
         /// <summary>
         /// Creates a new ray cast tracker.
         /// </summary>
@@ -166,25 +142,14 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if failed due to invalid input parameter.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
         /// </returns>
-        protected override MLResult StartAPI()
+        protected override MLResult.Code StartAPI()
         {
-            _instance.trackerHandle = MagicLeapNativeBindings.InvalidHandle;
+            this.trackerHandle = MagicLeapNativeBindings.InvalidHandle;
 
-            MLResult.Code resultCode = NativeBindings.MLRaycastCreate(ref _instance.trackerHandle);
-            if (resultCode != MLResult.Code.Ok)
-            {
-                MLResult result = MLResult.Create(resultCode);
-                MLPluginLog.ErrorFormat("MLRaycast.StartAPI failed to create input tracker. Reason: {0}", result);
-                return result;
-            }
+            MLResult.Code resultCode = NativeBindings.MLRaycastCreate(ref this.trackerHandle);
+            DidNativeCallSucceed(resultCode, "MLRaycastCreate");
 
-            if (!MagicLeapNativeBindings.MLHandleIsValid(_instance.trackerHandle))
-            {
-                MLPluginLog.Error("MLRaycast.StartAPI failed. Reason: Invalid handle returned when initializing an instance of MLRaycast");
-                return MLResult.Create(MLResult.Code.UnspecifiedFailure);
-            }
-
-            return MLResult.Create(MLResult.Code.Ok);
+            return resultCode;
         }
         #endif // DOXYGEN_SHOULD_SKIP_THIS
 
@@ -193,77 +158,53 @@ namespace UnityEngine.XR.MagicLeap
         /// </summary>
         protected override void Update()
         {
-            try
+            foreach (ulong handle in this.pendingQueries.Keys)
             {
-                if (_instance.pendingQueries.Count > 0)
+                NativeBindings.MLRaycastResultNative raycastResult = NativeBindings.MLRaycastResultNative.Create();
+
+                MLResult.Code resultCode = NativeBindings.MLRaycastGetResult(this.trackerHandle, handle, ref raycastResult);
+                if (resultCode == MLResult.Code.Ok)
                 {
-                    foreach (ulong handle in _instance.pendingQueries.Keys)
-                    {
-                        NativeBindings.MLRaycastResultNative raycastResult = NativeBindings.MLRaycastResultNative.Create();
-
-                        MLResult.Code resultCode = NativeBindings.MLRaycastGetResult(_instance.trackerHandle, handle, ref raycastResult);
-                        if (resultCode == MLResult.Code.Ok)
-                        {
-                            _instance.completedQueries.Add(handle, raycastResult);
-                        }
-                        else if(resultCode != MLResult.Code.Pending)
-                        {
-                            MLPluginLog.ErrorFormat("MLRaycast.Update failed to get raycast result. Reason: {0}", MLResult.CodeToString(resultCode));
-                            _instance.errorQueries.Add(handle);
-                        }
-                    }
-
-                    foreach (ulong handle in _instance.errorQueries)
-                    {
-                        _instance.pendingQueries.Remove(handle);
-                    }
-                    _instance.errorQueries.Clear();
-
-                    foreach (KeyValuePair<ulong, NativeBindings.MLRaycastResultNative> handle in _instance.completedQueries)
-                    {
-                        // Check if there is a valid hit result.
-                        bool didHit = handle.Value.State != ResultState.RequestFailed && handle.Value.State != ResultState.NoCollision;
-
-                        _instance.pendingQueries[handle.Key](
-                             handle.Value.State,
-                            didHit ? MLConvert.ToUnity(handle.Value.Hitpoint) : Vector3.zero,
-                            didHit ? MLConvert.ToUnity(handle.Value.Normal, true, false) : Vector3.zero,
-                             handle.Value.Confidence);
-
-                        _instance.pendingQueries.Remove(handle.Key);
-                    }
-                    _instance.completedQueries.Clear();
+                    this.completedQueries.Add(handle, raycastResult);
+                }
+                else if (resultCode != MLResult.Code.Pending)
+                {
+                    MLPluginLog.ErrorFormat("MLRaycast.Update failed to get raycast result. Reason: {0}", MLResult.CodeToString(resultCode));
+                    this.errorQueries.Add(handle);
                 }
             }
-            catch (System.EntryPointNotFoundException)
+
+            foreach (ulong handle in this.errorQueries)
             {
-                MLPluginLog.Error("MLRaycast.Update failed. Reason: API symbols not found");
+                this.pendingQueries.Remove(handle);
             }
+            this.errorQueries.Clear();
+
+            foreach (KeyValuePair<ulong, NativeBindings.MLRaycastResultNative> handle in this.completedQueries)
+            {
+                // Check if there is a valid hit result.
+                bool didHit = handle.Value.State != ResultState.RequestFailed && handle.Value.State != ResultState.NoCollision;
+
+                this.pendingQueries[handle.Key](
+                     handle.Value.State,
+                    didHit ? MLConvert.ToUnity(handle.Value.Hitpoint) : Vector3.zero,
+                    didHit ? MLConvert.ToUnity(handle.Value.Normal, true, false) : Vector3.zero,
+                     handle.Value.Confidence);
+
+                this.pendingQueries.Remove(handle.Key);
+            }
+
+            this.completedQueries.Clear();
         }
 
         /// <summary>
         /// Cleans up memory and destroys the ray cast tracker.
         /// </summary>
-        /// <param name="isSafeToAccessManagedObjects">Allow complete cleanup of the API.</param>
-        protected override void CleanupAPI(bool isSafeToAccessManagedObjects)
+        protected override MLResult.Code StopAPI()
         {
-            if (isSafeToAccessManagedObjects)
-            {
-                _instance.pendingQueries.Clear();
-            }
-
-            _instance.DestroyNativeTracker();
-        }
-
-        /// <summary>
-        /// static instance of the <c>MLRaycast</c> class
-        /// </summary>
-        private static void CreateInstance()
-        {
-            if (!MLRaycast.IsValidInstance())
-            {
-                MLRaycast._instance = new MLRaycast();
-            }
+            this.pendingQueries.Clear();
+            this.DestroyNativeTracker();
+            return MLResult.Code.Ok;
         }
 
         /// <summary>
@@ -271,23 +212,15 @@ namespace UnityEngine.XR.MagicLeap
         /// </summary>
         private void DestroyNativeTracker()
         {
-            try
+            if (NativeBindings.MLHandleIsValid(this.trackerHandle))
             {
-                if (NativeBindings.MLHandleIsValid(_instance.trackerHandle))
+                MLResult.Code resultCode = NativeBindings.MLRaycastDestroy(this.trackerHandle);
+                if (resultCode != MLResult.Code.Ok)
                 {
-                    MLResult.Code resultCode = NativeBindings.MLRaycastDestroy(_instance.trackerHandle);
-                    if (resultCode != MLResult.Code.Ok)
-                    {
-                        MLPluginLog.ErrorFormat("MLRaycast.DestroyNativeTracker failed to destroy raycast tracker. Reason: {0}", NativeBindings.MLGetResultString(resultCode));
-                    }
-
-                    _instance.trackerHandle = MagicLeapNativeBindings.InvalidHandle;
+                    MLPluginLog.ErrorFormat("MLRaycast.DestroyNativeTracker failed to destroy raycast tracker. Reason: {0}", NativeBindings.MLGetResultString(resultCode));
                 }
-            }
-            catch (System.EntryPointNotFoundException)
-            {
-                MLPluginLog.Error("MLRaycast.DestroyNativeTracker failed. Reason: API symbols not found");
-                _instance.trackerHandle = MagicLeapNativeBindings.InvalidHandle;
+
+                this.trackerHandle = MagicLeapNativeBindings.InvalidHandle;
             }
         }
 

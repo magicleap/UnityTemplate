@@ -64,7 +64,7 @@ namespace MagicLeap.Core
 
         #if PLATFORM_LUMIN
         /// <summary>
-        /// The latest result from the last query to MLPlanesStarterKit.
+        /// The latest result from the last query to MLPlanes.
         /// All planes in the array are ordered from largest first based on it's surface area.
         /// </summary>
         public MLPlanes.Plane[] PlanesResult { get; private set; }
@@ -94,19 +94,27 @@ namespace MagicLeap.Core
         /// </summary>
         private MLPlanes.QueryFlags _queryFlags  = MLPlanes.QueryFlags.Vertical;
 
-        #if PLATFORM_LUMIN
+        /// <summary>
+        /// Cached bool for if component is currently querying the planes api.
+        /// </summary>
+        private bool _isQuerying = false;
+
+#if PLATFORM_LUMIN
         /// <summary>
         /// Cached query parameters.
         /// </summary>
         private MLPlanes.QueryParams _queryParams = new MLPlanes.QueryParams();
 
+        /// <summary>
+        /// Delegate for when a query has completed.
+        /// </summary>
         public delegate void QueryPlanesResult(MLPlanes.Plane[] planes, MLPlanes.Boundaries[] boundaries);
 
         /// <summary>
         /// Event for when a query has completed.
         /// </summary>
         public event QueryPlanesResult OnQueryPlanesResult;
-        #endif
+#endif
 
         /// <summary>
         /// Validates data after it has been changed in the inspector.
@@ -126,41 +134,25 @@ namespace MagicLeap.Core
         }
 
         /// <summary>
-        /// Starts up MLPlanesStarterKit.
-        /// </summary>
-        void Start()
-        {
-            #if PLATFORM_LUMIN
-            MLPlanesStarterKit.Start();
-            #endif
-        }
-
-        /// <summary>
-        /// Clean up.
-        /// </summary>
-        void OnDestroy()
-        {
-            MLPlanesStarterKit.Stop();
-        }
-
-        /// <summary>
         /// Updates PlanesResult based on the query results.
         /// </summary>
         void Update()
         {
-            if(!MLPlanesStarterKit.isQuerying)
+            if(!_isQuerying)
             {
                 QueryPlanes();
             }
         }
 
         /// <summary>
-        /// Queries for planes via MLPlanesStarterKit with all of the set query flags and parameters
+        /// Queries for planes via MLPlanes with all of the set query flags and parameters
         /// and sets the PlanesResult[] when finished. Based on the query flags that
         /// are passed in, extraction and calculation times may vary.
         /// </summary>
         private void QueryPlanes()
         {
+            _isQuerying = true;
+
             // Construct flag data.
             _queryFlags = (MLPlanes.QueryFlags)orientationFlags;
             _queryFlags |= (MLPlanes.QueryFlags)semanticFlags;
@@ -175,13 +167,13 @@ namespace MagicLeap.Core
             _queryParams.MinHoleLength = minHoleLength;
             _queryParams.MinPlaneArea = minPlaneArea;
 
-            MLPlanesStarterKit.QueryPlanes(_queryParams, HandleOnQueriedPlanes);
+            MLPlanes.GetPlanes(_queryParams, HandleOnQueriedPlanes);
             #endif
         }
 
         #if PLATFORM_LUMIN
         /// <summary>
-        /// Handles the result that is recieved from  MLPlanesStarterKit.QueryPlanes.
+        /// Handles the result that is recieved from MLPlanes.GetPlanes.
         /// <param name="result">The resulting status of the query.</param>
         /// <param name="planes">The planes recieved from the query.</param>
         /// <param name="boundaries">The boundaries recieved from the query.</param>
@@ -197,6 +189,8 @@ namespace MagicLeap.Core
             {
                 Debug.LogErrorFormat("Error: Planes failed to query  MLPlanes. Reason: {0}", result);
             }
+
+            _isQuerying = false;
         }
         #endif
     }

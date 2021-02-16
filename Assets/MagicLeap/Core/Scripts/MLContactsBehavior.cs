@@ -95,16 +95,7 @@ namespace MagicLeap.Core
         private void StartAPI()
         {
             #if PLATFORM_LUMIN
-            MLResult result = MLPrivilegesStarterKit.Start();
-            if (!result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLContactsBehavior failed starting MLPrivileges, disabling script. Reason: {0}", result);
-                OnStartupComplete?.Invoke(false);
-                enabled = false;
-                return;
-            }
-
-            result = MLPrivilegesStarterKit.RequestPrivileges(MLPrivileges.Id.AddressBookRead, MLPrivileges.Id.AddressBookWrite);
+            MLResult result = MLPrivilegesStarterKit.RequestPrivileges(MLPrivileges.Id.AddressBookRead, MLPrivileges.Id.AddressBookWrite);
             if (result.Result != MLResult.Code.PrivilegeGranted)
             {
                 Debug.LogErrorFormat("Error: MLContactsBehavior failed requesting privileges, disabling script. Reason: {0}", result);
@@ -112,8 +103,6 @@ namespace MagicLeap.Core
                 enabled = false;
                 return;
             }
-
-            MLPrivilegesStarterKit.Stop();
 
             result = MLContacts.Start();
             if (!result.IsOk)

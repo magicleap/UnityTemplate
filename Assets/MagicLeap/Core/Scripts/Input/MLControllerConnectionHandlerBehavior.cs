@@ -89,19 +89,10 @@ namespace UnityEngine.XR.MagicLeap
                 DevicesAllowed.HasFlag(DeviceTypesAllowed.ControllerRight);
 
             #if PLATFORM_LUMIN
-            if (!MLInput.IsStarted)
-            {
-                MLInput.Configuration config = new MLInput.Configuration(requestCFUID,
-                                                            MLInput.Configuration.DefaultTriggerDownThreshold,
-                                                            MLInput.Configuration. DefaultTriggerUpThreshold);
-                MLResult result = MLInput.Start(config);
-                if (!result.IsOk)
-                {
-                    Debug.LogErrorFormat("Error: ControllerConnectionHandler failed starting MLInput, disabling script. Reason: {0}", result);
-                    enabled = false;
-                    return;
-                }
-            }
+            MLInput.Configuration config = new MLInput.Configuration(requestCFUID,
+                                                        MLInput.Configuration.DefaultTriggerDownThreshold,
+                                                        MLInput.Configuration. DefaultTriggerUpThreshold);
+            MLInput.SetConfig(config);
 
             MLInput.OnControllerConnected += HandleOnControllerConnected;
             MLInput.OnControllerDisconnected += HandleOnControllerDisconnected;
@@ -120,8 +111,6 @@ namespace UnityEngine.XR.MagicLeap
             {
                 MLInput.OnControllerDisconnected -= HandleOnControllerDisconnected;
                 MLInput.OnControllerConnected -= HandleOnControllerConnected;
-
-                MLInput.Stop();
             }
             #endif
         }

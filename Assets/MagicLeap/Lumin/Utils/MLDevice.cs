@@ -89,7 +89,17 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary>
         /// Delegate to handle Update calls.
         /// </summary>
-        public delegate void OnUpdateActionsDelegate();
+        public delegate void OnStartEventDelegate();
+
+        /// <summary>
+        /// Delegate to handle Update calls.
+        /// </summary>
+        public delegate void OnUpdateEventDelegate();
+
+        /// <summary>
+        /// Delegate to handle Update calls.
+        /// </summary>
+        public delegate void OnDestroyEventDelegate();
 
         /// <summary>
         /// Delegate to handle application pause events.
@@ -98,14 +108,36 @@ namespace UnityEngine.XR.MagicLeap
         public delegate void OnPauseEventDelegate(bool paused);
 
         /// <summary>
-        /// Event triggered on application update.
+        /// Delegate to handle application quit events.
         /// </summary>
-        private event OnUpdateActionsDelegate OnUpdateActions = delegate { };
+        public delegate void OnQuitEventDelegate();
 
         /// <summary>
-        /// Event triggered on application pause and resume.
+        /// Triggered every Unity Update.
+        /// </summary>
+        private event OnStartEventDelegate OnStartEvent = delegate { };
+
+        /// <summary>
+        /// Triggered every Unity Update.
+        /// </summary>
+        private event OnUpdateEventDelegate OnUpdateEvent = delegate { };
+
+        /// <summary>
+        /// Triggered when Unity's OnDestroy is called.
+        /// </summary>
+        private event OnDestroyEventDelegate OnDestroyEvent = delegate { };
+
+        /// <summary>
+        /// Triggered on application pause and resume.
         /// </summary>
         private event OnPauseEventDelegate OnPauseEvent = delegate { };
+
+        /// <summary>
+        /// Triggered on application quit.
+        /// </summary>
+        private event OnQuitEventDelegate OnQuitEvent = delegate { };
+
+        private int mainThreadId = -1;
 
         /// <summary>
         /// Gets the last scale assigned from the main camera's parent
@@ -156,6 +188,8 @@ namespace UnityEngine.XR.MagicLeap
             }
         }
 
+        public static int MainThreadId => Instance.mainThreadId;
+
         /// <summary>
         /// Gets the MLDevice singleton instance.
         /// </summary>
@@ -188,34 +222,84 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
-        /// Register a MagicLeap API Update callback to be called on Update of this behavior.
+        /// Register a MagicLeap API Update callback to be called on Start of this behavior.
         /// </summary>
         /// <param name="callback">Callback to register.</param>
-        public static void Register(OnUpdateActionsDelegate callback)
+        public static void RegisterStart(OnStartEventDelegate callback)
         {
-            Instance.OnUpdateActions += callback;
+            Instance.OnStartEvent += callback;
         }
 
         /// <summary>
-        /// Register a MagicLeap API application pause callback to be called OnApplicationPause of this behavior.
+        /// Register a MagicLeap API Update callback to be called on Update of this behavior.
         /// </summary>
         /// <param name="callback">Callback to register.</param>
-        public static void RegisterOnApplicationPause(OnPauseEventDelegate callback)
+        public static void RegisterUpdate(OnUpdateEventDelegate callback)
+        {
+            Instance.OnUpdateEvent += callback;
+        }
+
+        /// <summary>
+        /// Register a MagicLeap API Update callback to be called on Destroy of this behavior.
+        /// </summary>
+        /// <param name="callback">Callback to register.</param>
+        public static void RegisterDestroy(OnDestroyEventDelegate callback)
+        {
+            Instance.OnDestroyEvent += callback;
+        }
+
+        /// <summary>
+        /// Unrgister a MagicLeap API application pause callback to be called OnApplicationPause of this behavior.
+        /// </summary>
+        /// <param name="callback">Callback to register.</param>
+        public static void RegisterApplicationPause(OnPauseEventDelegate callback)
         {
             Instance.OnPauseEvent += callback;
+        }
+
+        /// <summary>
+        /// Register a MagicLeap API application quit callback to be called on OnApplicationQuit of this behavior.
+        /// </summary>
+        /// <param name="callback">Callback to register</param>
+        public static void RegisterApplicationQuit(OnQuitEventDelegate callback)
+        {
+            Instance.OnQuitEvent += callback;
         }
 
         /// <summary>
         /// Unregister a previously registered MagicLeap API Update callback.
         /// </summary>
         /// <param name="callback">Callback to unregister.</param>
-        public static void Unregister(OnUpdateActionsDelegate callback)
+        public static void UnregisterStart(OnStartEventDelegate callback)
+        { 
+            Instance.OnStartEvent -= callback;
+        }
+
+        /// <summary>
+        /// Unregister a previously registered MagicLeap API Update callback.
+        /// </summary>
+        /// <param name="callback">Callback to unregister.</param>
+        public static void UnregisterUpdate(OnUpdateEventDelegate callback)
         {
             // Check instance instead of the Instance property to prevent
             // creating an instance to unregister something that won't be there.
             if (instance != null)
             {
-                instance.OnUpdateActions -= callback;
+                instance.OnUpdateEvent -= callback;
+            }
+        }
+
+        /// <summary>
+        /// Unregister a MagicLeap API from being called when OnDestroy for this behavior is called.
+        /// </summary>
+        /// <param name="callback">Callback to register.</param>
+        public static void UnregisterDestroy(OnDestroyEventDelegate callback)
+        {
+            // Check instance instead of the Instance property to prevent
+            // creating an instance to unregister something that won't be there.
+            if (instance != null)
+            {
+                instance.OnDestroyEvent -= callback;
             }
         }
 
@@ -223,11 +307,27 @@ namespace UnityEngine.XR.MagicLeap
         /// Unregister a previously registered MagicLeap API application pause callback.
         /// </summary>
         /// <param name="callback">Callback to unregister.</param>
-        public static void UnregisterOnApplicationPause(OnPauseEventDelegate callback)
+        public static void UnregisterApplicationPause(OnPauseEventDelegate callback)
         {
+            // Check instance instead of the Instance property to prevent
+            // creating an instance to unregister something that won't be there.
             if (instance != null)
             {
                 instance.OnPauseEvent -= callback;
+            }
+        }
+
+        /// <summary>
+        /// Unregister a previously registered MagicLeapAPI application quit callback.
+        /// </summary>
+        /// <param name="callback">Callback to unregister</param>
+        public static void UnregisterApplicationQuit(OnQuitEventDelegate callback)
+        {
+            // Check instance instead of the Instance property to prevent
+            // creating an instance to unregister something that won't be there.
+            if (instance != null)
+            {
+                instance.OnQuitEvent -= callback;
             }
         }
 
@@ -280,9 +380,10 @@ namespace UnityEngine.XR.MagicLeap
                 // Only destroy the component when all instances have been removed.
                 if (instance.gestureSubsystemStartCount == 0)
                 {
-                    // Immediately removes the Gesture Subsystem component because the subsystem is normally unregistered inside the OnDestroy() of another object.
-                    DestroyImmediate(instance.gestureSubsystem);
-                    instance.gestureSubsystem = null;
+                    if (instance.gestureSubsystem != null)
+                    {
+                        instance.gestureSubsystem = null;
+                    }
                 }
             }
         }
@@ -321,6 +422,8 @@ namespace UnityEngine.XR.MagicLeap
             this.SetPoseSource(DeviceType.GenericXRDevice, TrackedPose.Head);
             this.trackingType = TrackingType.RotationAndPosition;
             this.updateType = UpdateType.Update;
+
+            this.mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
         }
 
         /// <summary>
@@ -350,6 +453,7 @@ namespace UnityEngine.XR.MagicLeap
             {
                 this.StopCoroutine(this.endOfFrameCoroutine);
             }
+            OnDestroyEvent?.Invoke();
         }
 
         /// <summary>
@@ -364,17 +468,18 @@ namespace UnityEngine.XR.MagicLeap
                 return;
             }
 
-            this.OnUpdateActions?.Invoke();
+            this.OnUpdateEvent?.Invoke();
 
             MLThreadDispatch.DispatchAll();
         }
 
         /// <summary>
-        /// Starts the EndOfFrameUpdate coroutine.
+        /// Starts the EndOfFrameUpdate coroutine and dispatches the Start event.
         /// </summary>
-        private void Start()
+        protected void Start()
         {
             this.endOfFrameCoroutine = this.StartCoroutine(this.EndOfFrameUpdate());
+            OnStartEvent();
         }
 
         /// <summary>
@@ -384,6 +489,14 @@ namespace UnityEngine.XR.MagicLeap
         private void OnApplicationPause(bool pauseStatus)
         {
             this.OnPauseEvent?.Invoke(pauseStatus);
+        }
+
+        /// <summary>
+        /// Callback sent to all game objects when the player quits.
+        /// </summary>
+        private void OnApplicationQuit()
+        {
+            this.OnQuitEvent?.Invoke();
         }
 
         /// <summary>
@@ -464,5 +577,4 @@ namespace UnityEngine.XR.MagicLeap
         }
     }
 }
-
 #endif

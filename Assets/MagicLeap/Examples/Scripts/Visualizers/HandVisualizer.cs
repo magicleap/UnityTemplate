@@ -13,7 +13,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.MagicLeap;
-using MagicLeap.Core.StarterKit;
 
 namespace MagicLeap
 {
@@ -68,18 +67,18 @@ namespace MagicLeap
             {
                 if (_handType == MLHandTracking.HandType.Left)
                 {
-                    return MLHandTrackingStarterKit.Left;
+                    return MLHandTracking.Left;
                 }
                 else
                 {
-                    return MLHandTrackingStarterKit.Right;
+                    return MLHandTracking.Right;
                 }
             }
         }
         #endif
 
         /// <summary>
-        /// Calls Start on MLHandTrackingStarterKit and initializes the lists of hand transforms.
+        /// Initializes the lists of hand transforms.
         /// </summary>
         void Start()
         {
@@ -90,26 +89,7 @@ namespace MagicLeap
                 return;
             }
 
-            MLResult result = MLHandTrackingStarterKit.Start();
-
-            #if PLATFORM_LUMIN
-            if (!result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: HandVisualizer failed calling Start on MLHandTrackingStarterKit, disabling script. Reason: {0}", result);
-                enabled = false;
-                return;
-            }
-            #endif
-
             Initialize();
-        }
-
-        /// <summary>
-        /// Clean up.
-        /// </summary>
-        void OnDestroy()
-        {
-            MLHandTrackingStarterKit.Stop();
         }
 
         /// <summary>

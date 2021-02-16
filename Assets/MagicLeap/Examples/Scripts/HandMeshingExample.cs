@@ -13,7 +13,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.MagicLeap;
-using MagicLeap.Core.StarterKit;
 
 namespace MagicLeap
 {
@@ -106,29 +105,17 @@ namespace MagicLeap
             }
             _switchTooltip.gameObject.SetActive(false);
 
-            // Note: MLHandTracking API is not necessary to use Hand Meshing.
-            // It is only used for switching the render modes in this example.
-            MLResult result = MLHandTrackingStarterKit.Start();
-
-            #if PLATFORM_LUMIN
-            if (!result.IsOk)
-            {
-                Debug.LogError("Error: HandMeshingExample failed on MLHandTrackingStarterKit.Start, disabling script.");
-                enabled = false;
-                return;
-            }
-            #endif
-
-            MLHandTrackingStarterKit.EnableKeyPoses(true, _keyposeToSwitch);
-            MLHandTrackingStarterKit.SetPoseFilterLevel(MLHandTracking.PoseFilterLevel.ExtraRobust);
-            MLHandTrackingStarterKit.SetKeyPointsFilterLevel(MLHandTracking.KeyPointFilterLevel.ExtraSmoothed);
+#if PLATFORM_LUMIN
+            MLHandTracking.KeyPoseManager.EnableKeyPoses(new MLHandTracking.HandKeyPose[] { _keyposeToSwitch }, true);
+            MLHandTracking.KeyPoseManager.SetPoseFilterLevel(MLHandTracking.PoseFilterLevel.ExtraRobust);
+            MLHandTracking.KeyPoseManager.SetKeyPointsFilterLevel(MLHandTracking.KeyPointFilterLevel.ExtraSmoothed);
+#endif
 
             _timer = _secondsBetweenModes;
         }
 
         void OnDestroy()
         {
-            MLHandTrackingStarterKit.Stop();
         }
 
         /// <summary>
@@ -161,11 +148,11 @@ namespace MagicLeap
 
         private bool IsSwitchingModes()
         {
-            #if PLATFORM_LUMIN
-            return (MLHandTrackingStarterKit.Right.KeyPose == _keyposeToSwitch && MLHandTrackingStarterKit.Right.HandKeyPoseConfidence > _minimumConfidence);
-            #else
+#if PLATFORM_LUMIN
+            return (MLHandTracking.Right.KeyPose == _keyposeToSwitch && MLHandTracking.Right.HandKeyPoseConfidence > _minimumConfidence);
+#else
             return false;
-            #endif
+#endif
         }
 
         private void UpdateStatusText()
@@ -185,9 +172,9 @@ namespace MagicLeap
 
         private void UpdateSwitchTooltip()
         {
-            #if PLATFORM_LUMIN
-            _switchTooltip.transform.position = MLHandTrackingStarterKit.Right.Thumb.KeyPoints[0].Position;
-            #endif
+#if PLATFORM_LUMIN
+            _switchTooltip.transform.position = MLHandTracking.Right.Thumb.KeyPoints[0].Position;
+#endif
 
             _switchTooltip.text = string.Format("{0}<color=yellow>{1}</color> {2} {3} seconds",
                 LocalizeManager.GetString("Switchingto"),

@@ -25,7 +25,7 @@ namespace UnityEngine.XR.MagicLeap
     /// (image targets) in the physical world. It provides the position and
     /// orientation of the image targets in the physical world.
     /// </summary>
-    public sealed partial class MLImageTracker : MLAPISingleton<MLImageTracker>
+    public partial class MLImageTracker : MLAutoAPISingleton<MLImageTracker>
     {
         #if PLATFORM_LUMIN
         /// <summary>
@@ -42,21 +42,6 @@ namespace UnityEngine.XR.MagicLeap
         /// The list of settings for this image tracker.
         /// </summary>
         private NativeBindings.MLImageTrackerSettingsNative trackerSettings;
-
-        /// <summary>
-        /// Prevents a default instance of the <see cref="MLImageTracker" /> class from being created.
-        /// </summary>
-        private MLImageTracker()
-        {
-            this.trackerSettings = NativeBindings.MLImageTrackerSettingsNative.Create();
-            MLResult.Code result = NativeBindings.MLImageTrackerInitSettings(ref this.trackerSettings);
-            if (result != MLResult.Code.Ok)
-            {
-                MLPluginLog.ErrorFormat("MLImageTracker.Constructor failed initializing the ImageTrackerSettings. Reason: {0}", result);
-            }
-
-            this.targetList = new List<Target>();
-        }
         #endif
 
         /// <summary>
@@ -81,77 +66,14 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         #if PLATFORM_LUMIN
-        /// <summary>
-        /// Starts the image tracker with the defined settings.
-        /// </summary>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if failed due to internal invalid input parameter.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
-        /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if image tracker was not created due to lack of privilege(s).
-        /// </returns>
-        public static MLResult Start()
-        {
-            var settings = NativeBindings.MLImageTrackerSettingsNative.Create();
-            MLResult.Code resultCode = NativeBindings.MLImageTrackerInitSettings(ref settings);
-            MLResult result = MLResult.Create(resultCode);
-            if (result.IsOk)
-            {
-                MLImageTracker.Settings defaultTrackerSettings = MLImageTracker.Settings.Create(settings.MaxSimultaneousTargets);
-                return Start(defaultTrackerSettings);
-            }
-            else
-            {
-                return result;
-            }
-        }
 
         /// <summary>
-        /// Starts the image tracker with the specified settings.
-        /// </summary>
-        /// <param name="customSettings">The settings to start the image tracker with.</param>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if failed due to internal invalid input parameter.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
-        /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if image tracker was not created due to lack of privilege(s).
-        /// </returns>
-        public static MLResult Start(MLImageTracker.Settings customSettings)
-        {
-            var settings = new NativeBindings.MLImageTrackerSettingsNative(customSettings);
-            bool hasInstanceWithDifferentSettings = false;
-
-            if ((MLImageTracker._instance != null) && (settings != MLImageTracker.Instance.trackerSettings))
-            {
-                MLPluginLog.Warning("MLImageTracker.Start, starting image tracking multiple times with different settings. New settings will be ignored.");
-                hasInstanceWithDifferentSettings = true;
-            }
-
-            CreateInstance();
-
-            if (!hasInstanceWithDifferentSettings)
-            {
-                MLImageTracker.Instance.trackerSettings = settings;
-            }
-
-            return MLImageTracker.BaseStart(true);
-        }
-
-        /// <summary>
-        /// Gets the current MLImageTracker.Settings
+        /// Gets the current MLImageTracker.Settings.
         /// </summary>
         /// <returns> A copy of the current MLImageTracker.Settings object. </returns>
         public static MLImageTracker.Settings GetCurrentTrackerSettings()
         {
-            if (MLImageTracker.IsValidInstance() && Instance.trackerSettings != null)
-            {
-                return MLImageTracker.Settings.Create(Instance.trackerSettings.MaxSimultaneousTargets);
-            }
-            else
-            {
-                MLPluginLog.ErrorFormat("MLImageTracker.Settings.GetCurrentTrackerSettings failed. Reason: No Instance for MLImageTracker");
-                return MLImageTracker.Settings.Create(0);
-            }
+            return MLImageTracker.Settings.Create(Instance.trackerSettings.MaxSimultaneousTargets);
         }
 
         /// <summary>
@@ -167,11 +89,6 @@ namespace UnityEngine.XR.MagicLeap
         public static MLResult UpdateTrackerSettings(MLImageTracker.Settings customSettings)
         {
             var currentSettings = GetCurrentTrackerSettings();
-
-            if (currentSettings == customSettings)
-            {
-                return MLResult.Create(MLResult.Code.Ok, "No change needed");
-            }
 
             Instance.trackerSettings = new NativeBindings.MLImageTrackerSettingsNative(customSettings);
 
@@ -266,25 +183,28 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
         /// </returns>
-        protected override MLResult StartAPI()
+        protected override MLResult.Code StartAPI()
         {
-            this.handle = MagicLeapNativeBindings.InvalidHandle;
-            MLResult.Code resultCode = NativeBindings.MLImageTrackerCreate(ref this.trackerSettings, ref this.handle);
-            MLResult result = MLResult.Create(resultCode);
-            if (result.IsOk)
+            MLPrivileges.RequestPrivilege(MLPrivileges.Id.CameraCapture);
+
+            this.trackerSettings = NativeBindings.MLImageTrackerSettingsNative.Create();
+            MLResult.Code result = NativeBindings.MLImageTrackerInitSettings(ref this.trackerSettings);
+            if (result != MLResult.Code.Ok)
             {
-                bool success = MagicLeapNativeBindings.MLHandleIsValid(this.handle);
-                if (!success)
-                {
-                    MLPluginLog.Error("MLImageTracker.StartApi failed. Reason: Invalid image tracker this.handle.");
-                }
-            }
-            else
-            {
-                MLPluginLog.ErrorFormat("MLImageTracker.StartApi failed to create image tracker this.handle. Reason: {0}", result);
+                MLPluginLog.ErrorFormat("MLImageTracker.Constructor failed initializing the ImageTrackerSettings. Reason: {0}", result);
             }
 
-            return result;
+            this.targetList = new List<Target>();
+
+            this.handle = MagicLeapNativeBindings.InvalidHandle;
+            MLResult.Code resultCode = NativeBindings.MLImageTrackerCreate(ref this.trackerSettings, ref this.handle);
+
+            if (!DidNativeCallSucceed(resultCode, "MLImageTrackerCreate"))
+            {
+                return resultCode;
+            }
+
+            return UpdateTrackerSettings(MLImageTracker.Settings.Create(this.trackerSettings.MaxSimultaneousTargets)).Result;
         }
         #endif // DOXYGENSHOULDSKIPTHIS
 
@@ -292,23 +212,21 @@ namespace UnityEngine.XR.MagicLeap
         /// Cleanup the image targets first (if it safe) and the cleanup the
         /// image tracker.
         /// </summary>
-        /// <param name="isSafeToAccessManagedObjects">Determines if the target's should be disposed of or not.</param>
-        protected override void CleanupAPI(bool isSafeToAccessManagedObjects)
+        protected override MLResult.Code StopAPI()
         {
-            if (isSafeToAccessManagedObjects)
+            if (this.targetList != null)
             {
-                if (this.targetList != null)
+                foreach (Target target in this.targetList)
                 {
-                    foreach (Target target in this.targetList)
-                    {
-                        target.Dispose();
-                    }
-
-                    this.targetList.Clear();
+                    target.Dispose();
                 }
+
+                this.targetList.Clear();
             }
 
             this.DestroyNativeTracker();
+
+            return MLResult.Code.Ok;
         }
 
         /// <summary>
@@ -330,21 +248,15 @@ namespace UnityEngine.XR.MagicLeap
         /// <param name="pause"> True if the app is paused.</param>
         protected override void OnApplicationPause(bool pause)
         {
+            if(!pause)
+            {
+                MLPrivileges.RequestPrivilege(MLPrivileges.Id.CameraCapture);
+            }
+
             MLResult result = pause ? Disable() : Enable();
             if (!result.IsOk)
             {
                 MLPluginLog.ErrorFormat("MLImageTracker.OnApplicationPause failed to {0} the image tracker. Reason: {1}", pause ? "disable" : "enable", result);
-            }
-        }
-
-        /// <summary>
-        /// Static instance of the MLImageTracker class.
-        /// </summary>
-        private static void CreateInstance()
-        {
-            if (!MLImageTracker.IsValidInstance())
-            {
-                MLImageTracker._instance = new MLImageTracker();
             }
         }
 

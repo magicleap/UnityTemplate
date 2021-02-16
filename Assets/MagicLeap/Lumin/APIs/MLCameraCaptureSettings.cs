@@ -21,7 +21,7 @@ namespace UnityEngine.XR.MagicLeap
     /// functions. Most functions are currently a direct pass through functions to the
     /// native C-API functions and incur no overhead.
     /// </summary>
-    public sealed partial class MLCamera : MLAPISingleton<MLCamera>
+    public sealed partial class MLCamera : MLAutoAPISingleton<MLCamera>
     {
         /// <summary>
         /// Settings that are specific to a submitted capture

@@ -34,14 +34,9 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static MLResult Start()
         {
-            #if PLATFORM_LUMIN
-            _result = MLRaycast.Start();
-            if (!_result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLRaycastStarterKit failed starting MLRaycast. Reason: {0}", _result);
-            }
-            #endif
-
+#if PLATFORM_LUMIN
+            _result = MLResult.Create(MLResult.Code.Ok);
+#endif
             return _result;
         }
 
@@ -50,12 +45,6 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static void Stop()
         {
-            #if PLATFORM_LUMIN
-            if (MLRaycast.IsStarted)
-            {
-                MLRaycast.Stop();
-            }
-            #endif
         }
 
         #if PLATFORM_LUMIN
@@ -64,20 +53,11 @@ namespace MagicLeap.Core.StarterKit
         /// </summary>
         public static MLResult Raycast(MLRaycast.QueryParams parameters, MLRaycast.OnRaycastResultDelegate callback)
         {
-            if (MLRaycast.IsStarted)
-            {
-                _result = MLRaycast.Raycast(parameters, callback);
+            _result = MLRaycast.Raycast(parameters, callback);
 
-                if (!_result.IsOk)
-                {
-                    Debug.LogErrorFormat("Error: MLRaycastStarterKit.Raycast failed. Reason: {0}", _result);
-                }
-            }
-
-            else
+            if (!_result.IsOk)
             {
-                Debug.LogError("Error: MLRaycastStarterKit.Raycast failed because MLRaycast was not started.");
-                _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLRaycast was not started");
+                Debug.LogErrorFormat("Error: MLRaycastStarterKit.Raycast failed. Reason: {0}", _result);
             }
 
             return _result;

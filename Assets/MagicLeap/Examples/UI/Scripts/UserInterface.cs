@@ -164,11 +164,19 @@ namespace MagicLeap
                 _statusText.text = LocalizeManager.GetString(_statusText.text);
             }
 
-            Application.logMessageReceived += HandleOnLogMessageReceived;
-
             // Open the these two tabs by default.
             _overviewTab.Pressed();
             _statusTab.Pressed();
+        }
+
+        private void OnEnable()
+        {
+            Application.logMessageReceived += HandleOnLogMessageReceived;
+        }
+
+        private void OnDisable()
+        {
+            Application.logMessageReceived -= HandleOnLogMessageReceived;
         }
 
         /// <summary>

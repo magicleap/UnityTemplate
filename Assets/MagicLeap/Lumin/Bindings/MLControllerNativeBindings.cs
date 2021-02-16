@@ -21,7 +21,7 @@ namespace UnityEngine.XR.MagicLeap
     /// <summary>
     /// Bindings to access for direct access to the Input system.
     /// </summary>
-    public sealed partial class MLInput : MLAPISingleton<MLInput>
+    public sealed partial class MLInput
     {
         /// <summary>
         /// The native bindings to the Input API.

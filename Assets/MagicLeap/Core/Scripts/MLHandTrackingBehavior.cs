@@ -14,7 +14,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.MagicLeap;
-using MagicLeap.Core.StarterKit;
 
 namespace MagicLeap.Core
 {
@@ -37,7 +36,7 @@ namespace MagicLeap.Core
     }
 
     /// <summary>
-    /// Component used to call Start on MLHandTrackingStarterKit and manage
+    /// Component that uses MLHandTracking to manage
     /// which key poses are currently being tracked by each hand.
     /// key poses can be added and removed from the tracker during runtime.
     /// </summary>
@@ -57,31 +56,22 @@ namespace MagicLeap.Core
 
         void Start()
         {
-            #if PLATFORM_LUMIN
-            MLResult result = MLHandTrackingStarterKit.Start();
-            if (!result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLHandTrackingBehavior failed on MLHandTrackingStarterKit.Start, disabling script. Reason: {0}", result);
-                enabled = false;
-                return;
-            }
-            #endif
-
             UpdateKeyPoseStates();
 
-            MLHandTrackingStarterKit.SetKeyPointsFilterLevel(_keyPointFilterLevel);
-            MLHandTrackingStarterKit.SetPoseFilterLevel(_poseFilterLevel);
+#if PLATFORM_LUMIN
+            MLHandTracking.KeyPoseManager.SetKeyPointsFilterLevel(_keyPointFilterLevel);
+            MLHandTracking.KeyPoseManager.SetPoseFilterLevel(_poseFilterLevel);
+#endif
         }
 
         /// <summary>
-        /// Disables all key poses and calls Stop on MLHandTrackingStarterKit.
+        /// Disables all key poses.
         /// </summary>
         void OnDestroy()
         {
-            // Disable all key poses if MLHandTrackingStarterKit was started
+            // Disable all key poses
             _trackedKeyPoses &= 0;
             UpdateKeyPoseStates();
-            MLHandTrackingStarterKit.Stop();
         }
 
         /// <summary>
@@ -150,22 +140,24 @@ namespace MagicLeap.Core
         /// </summary>
         private void UpdateKeyPoseStates()
         {
+#if PLATFORM_LUMIN
             MLHandTracking.HandKeyPose[] keyPoseTypes = GetKeyPoseTypes();
 
             // Early out in case there are no key poses to enable.
             if (keyPoseTypes.Length == 0)
             {
-                MLHandTrackingStarterKit.DisableKeyPoses();
+                MLHandTracking.KeyPoseManager.DisableAllKeyPoses();
                 return;
             }
 
-            bool status = MLHandTrackingStarterKit.EnableKeyPoses(true, keyPoseTypes);
+            bool status = MLHandTracking.KeyPoseManager.EnableKeyPoses(keyPoseTypes, true);
             if (!status)
             {
                 Debug.LogError("Error: MLHandTrackingBehavior failed enabling tracked key poses, disabling script.");
                 enabled = false;
                 return;
             }
+#endif
         }
     }
 }

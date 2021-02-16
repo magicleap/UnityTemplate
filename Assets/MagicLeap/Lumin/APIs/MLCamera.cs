@@ -16,8 +16,10 @@ namespace UnityEngine.XR.MagicLeap
     using System.Collections.Generic;
     using System.Linq;
     using System.Runtime.InteropServices;
+    using System.Threading;
+    using System.Threading.Tasks;
 
-    #if PLATFORM_LUMIN
+#if PLATFORM_LUMIN
     using UnityEngine.XR.MagicLeap.Native;
     #endif
 
@@ -26,7 +28,7 @@ namespace UnityEngine.XR.MagicLeap
     /// functions. Most functions are currently a direct pass through functions to the
     /// native C-API functions and incur no overhead.
     /// </summary>
-    public sealed partial class MLCamera : MLAPISingleton<MLCamera>
+    public sealed partial class MLCamera : MLAutoAPISingleton<MLCamera>
     {
         #if PLATFORM_LUMIN
         /// <summary>
@@ -80,6 +82,11 @@ namespace UnityEngine.XR.MagicLeap
         private bool captureVideoStarted = false;
 
         /// <summary>
+        /// Whether raw video capture is in progress.
+        /// </summary>
+        private bool capturingRawVideo = false;
+
+        /// <summary>
         /// A camera status callback.
         /// </summary>
         private MLCameraNativeBindings.MLCameraDeviceStatusCallbacksNative statusCallbacks;
@@ -98,16 +105,6 @@ namespace UnityEngine.XR.MagicLeap
         /// The unmanaged pointer for the capture callback.
         /// </summary>
         private IntPtr captureCallbacksUnmanaged = IntPtr.Zero;
-
-        /// <summary>
-        /// A handle to the head tracker.
-        /// </summary>
-        private ulong headTrackerHandle = MagicLeapNativeBindings.InvalidHandle;
-
-        /// <summary>
-        /// A handle to the CV camera.
-        /// </summary>
-        private ulong cameraCVTrackerHandle = MagicLeapNativeBindings.InvalidHandle;
 
         /// <summary>
         /// The number of dropped raw video frames since the last update.
@@ -135,12 +132,31 @@ namespace UnityEngine.XR.MagicLeap
         private bool resumePreview = false;
 
         /// <summary>
-        /// Prevents a default instance of the <see cref="MLCamera"/> class from being created.
+        /// The resume raw video capture state of the camera.
         /// </summary>
-        private MLCamera()
-        {
-            this.DllNotFoundError = "{0} is only available on device.";
-        }
+        private bool resumeRawVideoCapture = false;
+
+        /// <summary>
+        /// Whether OnDeviceDisconnected callback was invoked.
+        /// This flag is used in the OnDeviceAvailable callback
+        /// to determine if reconnecting the camera should be attempted.
+        /// </summary>
+        private bool wasDeviceDisconnected = false;
+
+        /// <summary>
+        /// Buffer used for copying Y buffer image memory to.
+        /// </summary>
+        private static CircularBuffer<byte[]> byteArraysYBuffer;
+
+        /// <summary>
+        /// Buffer used for copying U buffer image memory to.
+        /// </summary>
+        private static CircularBuffer<byte[]> byteArraysUBuffer;
+
+        /// <summary>
+        /// Buffer used for copying V buffer image memory to.
+        /// </summary>
+        private static CircularBuffer<byte[]> byteArraysVBuffer;
 
         /// <summary>
         /// A delegate for device available events.
@@ -212,6 +228,31 @@ namespace UnityEngine.XR.MagicLeap
         /// <param name="path">The path of the file.</param>
         /// <param name="settings">The camera result settings.</param>
         public delegate void OnCaptureCompletedSettingsDelegate(MLCamera.ResultExtras result, string path, MLCamera.ResultSettings settings);
+
+        /// <summary>
+        /// A delegate to report the result of an asynchronous camera connect request.
+        /// </summary>
+        /// <param name="result">Result reporting whether the camera connection request succeeded or not.</param>
+        public delegate void OnCameraConnectedDelegate(MLResult result);
+
+        /// <summary>
+        /// A delegate to report the result of an asynchronous camera disconnect request.
+        /// </summary>
+        /// <param name="result">Result reporting whether the camera diconnected or not.</param>
+        public delegate void OnCameraDisconnectedDelegate(MLResult result);
+
+        /// <summary>
+        /// A delegate to report the result of an asynchronous capture request.
+        /// </summary>
+        /// <param name="result">Result reporting whether the capture started or not.</param>
+        /// <param name="pathName">Contains the path if a Video capture request was made, null otherwise.</param>
+        public delegate void OnCameraCaptureStartedDelegate(MLResult result, string pathName);
+
+        /// <summary>
+        /// A delegate to report the result of an asynchronous capture completion.
+        /// </summary>
+        /// <param name="result">Result reporting whether the capture completed or not.</param>
+        public delegate void OnCameraCaptureCompletedDelegate(MLResult result);
 
         /// <summary>
         /// A delegate for camera raw image available events.
@@ -294,6 +335,26 @@ namespace UnityEngine.XR.MagicLeap
         public static event OnCaptureCompletedSettingsDelegate OnCaptureCompletedSettings = delegate { };
 
         /// <summary>
+        /// Callback fired when camera connection is complete, when requested via MLCamera.ConnectAsync()
+        /// </summary>
+        public static event OnCameraConnectedDelegate OnCameraConnected = delegate { };
+
+        /// <summary>
+        /// Callback fired when camera is disconnected, when requested via MLCamera.DisconnectAsync()
+        /// </summary>
+        public static event OnCameraDisconnectedDelegate OnCameraDisconnected = delegate { };
+
+        /// <summary>
+        /// Callback fired when camera capture starts, when requested via MLCamera.StartRawVideoCaptureAsync() or MLCamera.StartVideoCaptureAsync().
+        /// </summary>
+        public static event OnCameraCaptureStartedDelegate OnCameraCaptureStarted = delegate { };
+
+        /// <summary>
+        /// Callback fired when camera capture completes, when requested via MLCamera.StopVideoCaptureAsync().
+        /// </summary>
+        public static event OnCameraCaptureCompletedDelegate OnCameraCaptureCompleted = delegate { };
+
+        /// <summary>
         /// Camera capture callback, capture raw image available.
         /// </summary>
         public static event OnRawImageAvailableDelegate OnRawImageAvailable = delegate { };
@@ -304,9 +365,15 @@ namespace UnityEngine.XR.MagicLeap
         public static event OnRawImageAvailableYUVDelegate OnRawImageAvailableYUV = delegate { };
 
         /// <summary>
-        /// Camera capture callback, capture raw video frame, parameters are YUVFrameInfo and FrameMetadata.
+        /// Camera capture callback, capture raw video frame, parameters are YUVFrameInfo and FrameMetadata, invoked on the main thread.
         /// </summary>
         public static event OnRawVideoFrameAvailableYUVDelegate OnRawVideoFrameAvailableYUV = delegate { };
+
+        /// <summary>
+        /// Camera capture callback, capture raw video frame, parameters are YUVFrameInfo and FrameMetadata, invoked on the same thread as the native callback,
+        /// allowing the use of the unmanaged native pointer to the frame data memory.
+        /// </summary>
+        public static event OnRawVideoFrameAvailableYUVDelegate OnRawVideoFrameAvailableYUV_NativeCallbackThread = delegate { };
         #endif
 
         /// <summary>
@@ -851,19 +918,9 @@ namespace UnityEngine.XR.MagicLeap
         public bool Previewing { get; private set; }
 
         /// <summary>
-        /// Starts the Camera API.
+        /// Wait handle used to syncronize MLCamera.Stop() and any ongoing disconnect request.
         /// </summary>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to other internal error.
-        /// </returns>
-        public static MLResult Start()
-        {
-            CreateInstance();
-
-            // Not passing true since only CV Camera functions are unavailable if XR is not loaded.
-            return MLCamera.BaseStart();
-        }
+        private AutoResetEvent cameraDisconnectWaitHandle = new AutoResetEvent(true);
 
         /// <summary>
         /// Connect to camera resource and register callbacks.
@@ -883,6 +940,16 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
+        /// Connect to camera resource and register callbacks asynchronously.
+        /// Subscribe to MLCamera.OnCameraConnected event to be notified when connection is complete.
+        /// See MLCamera.Connect() for details on possible return codes.
+        /// </summary>
+        public static void ConnectAsync()
+        {
+            Instance.InternalConnectAsync();
+        }
+
+        /// <summary>
         /// Disconnect from camera resource and unregister callbacks.
         /// </summary>
         /// <returns>
@@ -892,6 +959,16 @@ namespace UnityEngine.XR.MagicLeap
         public static MLResult Disconnect()
         {
             return Instance.InternalDisconnect();
+        }
+
+        /// <summary>
+        /// Disconnect from camera resource and unregister callbacks asynchronously.
+        /// Subscribe to MLCamera.OnCameraDisconnected event to be notified when camera is disconnected.
+        /// See MLCamera.Disconnect() for details on possible return codes.
+        /// </summary>
+        public static void DisconnectAsync()
+        {
+            Instance.InternalDisconnectAsync();
         }
 
         /// <summary>
@@ -957,6 +1034,17 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
+        /// Starts capturing a video asynchronously to write as an MP4 to the specified path.
+        /// Subscribe to the MLCamera.OnCameraCaptureStarted event to be notified when the capture has been started.
+        /// See MLCamera.StartVideoCapture() for possible return codes.
+        /// </summary>
+        /// <param name="filePath"></param>
+        public static void StartVideoCaptureAsync(string filePath)
+        {
+            Instance.InternalStartVideoCaptureAsync(filePath);
+        }
+
+        /// <summary>
         /// Starts capturing video from the color camera. Frames are returned with OnRawVideoFrameAvailableYUV callback.
         /// </summary>
         /// <returns>
@@ -975,6 +1063,16 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
+        /// Starts capturing video asynchronously from the color camera. Frames are returned with OnRawVideoFrameAvailableYUV callback.
+        /// Subscribe to the MLCamera.OnCameraCaptureStarted event to be notified when the capture has been started.
+        /// See MLCamera.StartRawVideoCapture() for possible return codes.
+        /// </summary>
+        public static void StartRawVideoCaptureAsync()
+        {
+            Instance.InternalStartRawVideoCaptureAsync();
+        }
+
+        /// <summary>
         /// Stops capturing video. If initiated with StartVideoCapture(string) also
         /// write as an MP4 to the path specified with StartVideoCapture(string).
         /// </summary>
@@ -987,6 +1085,17 @@ namespace UnityEngine.XR.MagicLeap
         public static MLResult StopVideoCapture()
         {
             return Instance.InternalStopVideoCapture();
+        }
+
+        /// <summary>
+        /// Stops capturing video asynchronously. If initiated with StartVideoCapture(string) also
+        /// write as an MP4 to the path specified with StartVideoCapture(string).
+        /// Subscribe to the MLCamera.OnCameraCaptureCompleted event to be notified when the capture has stopped.
+        /// See MLCamera.StopVideoCapture() for possible return codes.
+        /// </summary>
+        public static void StopVideoCaptureAsync()
+        {
+            Instance.InternalStopVideoCaptureAsync();
         }
 
         /// <summary>
@@ -1027,40 +1136,6 @@ namespace UnityEngine.XR.MagicLeap
         public static MLResult SubmitCapture(ref MLCamera.CaptureSettings captureSettings, string filePath = "")
         {
             return Instance.InternalSubmitCapture(captureSettings.CaptureType, ref captureSettings, filePath);
-        }
-
-        /// <summary>
-        /// Get camera intrinsic parameter.
-        /// Requires ComputerVision privilege.
-        /// </summary>
-        /// <param name="outParameters">Output structure containing intrinsic parameters on success.</param>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if necessary privilege is missing.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if unable to retrieve intrinsic parameter.
-        /// </returns>
-        public static MLResult GetIntrinsicCalibrationParameters(out MLCamera.IntrinsicCalibrationParameters outParameters)
-        {
-            return Instance.InternalGetIntrinsicCalibrationParameters(MLCVCameraNativeBindings.CameraID.ColorCamera, out outParameters);
-        }
-
-        /// <summary>
-        /// Get transform between world origin and the camera. This method relies on a camera timestamp
-        /// that is normally acquired from the MLCameraResultExtras structure, therefore this method is
-        /// best used within a capture callback to maintain as much accuracy as possible.
-        /// Requires ComputerVision privilege.
-        /// </summary>tran
-        /// <param name="vcamTimestamp">Time in nanoseconds to request the transform.</param>
-        /// <param name="outTransform">Output transformation matrix on success.</param>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if necessary privilege is missing.
-        /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if outTransform parameter was not valid (null).
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed to obtain transform due to internal error.
-        /// </returns>
-        public static MLResult GetFramePose(ulong vcamTimestamp, out Matrix4x4 outTransform)
-        {
-            return Instance.InternalGetFramePose(MLCVCameraNativeBindings.CameraID.ColorCamera, vcamTimestamp, out outTransform);
         }
 
         /// <summary>
@@ -1157,89 +1232,31 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
         /// </returns>
-        protected override MLResult StartAPI()
+        protected override MLResult.Code StartAPI()
         {
-            // Used by CV functions.
-            if (!MLDevice.IsReady())
-            {
-                MLPluginLog.WarningFormat("MLCamera API is attempting to start before the MagicLeap XR Loader has been initialiazed, this could cause issues with MLCamera CV features. If your application needs these features please wait to start API until Monobehavior.Start and if issue persists make sure ProjectSettings/XR/Initialize On Startup is enabled.");
-            }
-
-            MLResult.Code resultCode = MLResult.Code.UnspecifiedFailure;
-
             // Pin down the callbacks structures since the native library keeps a reference to them.
             this.statusCallbacksUnmanaged = Marshal.AllocHGlobal(Marshal.SizeOf(this.statusCallbacks));
             this.captureCallbacksUnmanaged = Marshal.AllocHGlobal(Marshal.SizeOf(this.captureCallbacks));
 
-            MLResult result = MLHeadTracking.Start();
-            if (result.IsOk)
-            {
-                result = MLHeadTracking.GetState(out MLHeadTracking.State headTrackingState);
-                if (!result.IsOk)
-                {
-                    MLPluginLog.ErrorFormat("MLCamera.StartAPI failed to get head pose state. Reason: {0}", result);
-                }
-
-                this.headTrackerHandle = headTrackingState.Handle;
-                MLHeadTracking.Stop();
-            }
-            else
-            {
-                MLPluginLog.ErrorFormat("MLCamera.StartAPI failed to get head pose state. MLHeadTracking could not be successfully started.");
-            }
-
-            result = MLResult.Create(resultCode);
-
-            // Create CV camera tracker.
-            resultCode = MLCVCameraNativeBindings.MLCVCameraTrackingCreate(ref this.cameraCVTrackerHandle);
-            result = MLResult.Create(resultCode);
-            if (resultCode == MLResult.Code.PrivilegeDenied)
-            {
-                MLPluginLog.WarningFormat("MLCamera.StartAPI missing ComputerVision privilege, CV specific features disabled.");
-                result = MLResult.Create(MLResult.Code.Ok);
-            }
-            else if (!result.IsOk)
-            {
-                MLPluginLog.ErrorFormat("MLCamera.StartAPI failed to create native cv camera tracker. Reason: {0}", result);
-                return result;
-            }
-
-            return result;
+            return MLResult.Code.Ok;
         }
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
         /// <summary>
         /// Cleans up unmanaged memory.
         /// </summary>
-        /// <param name="isSafeToAccessManagedObject">Informs the cleanup process it's safe to clear the initialized MLCamera callbacks.</param>
-        protected override void CleanupAPI(bool isSafeToAccessManagedObject)
+        protected override MLResult.Code StopAPI()
         {
-            if (isSafeToAccessManagedObject)
-            {
-                MLDevice.Unregister(this.Update);
-
-                this.InternalDisconnect();
-
-                capturePath = string.Empty;
-            }
-            else
-            {
-                this.DisconnectNative();
-            }
+            // If an async destruction is already underway, we should wait here for it to be completed.
+            cameraDisconnectWaitHandle.WaitOne();
+            MLResult result = this.InternalDisconnect();
+            capturePath = string.Empty;
 
             // Release callback structure memory.
             Marshal.FreeHGlobal(this.statusCallbacksUnmanaged);
             Marshal.FreeHGlobal(this.captureCallbacksUnmanaged);
 
-            // Used by CV functions.
-
-            // Head Tracker is destroyed in the XR package, it cannot be destroyed in the plugin.
-            // Destroy cv camera tracker.
-            MLResult.Code resultCode = MLCVCameraNativeBindings.MLCVCameraTrackingDestroy(this.cameraCVTrackerHandle);
-            if (resultCode != MLResult.Code.Ok)
-            {
-                MLPluginLog.ErrorFormat("MLCamera.CleanupAPI failed to destroy native cv camera tracker. Reason: {0}", resultCode);
-            }
+            return result.Result;
         }
 
         /// <summary>
@@ -1290,17 +1307,6 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
-        /// static instance of the MLCamera class
-        /// </summary>
-        private static void CreateInstance()
-        {
-            if (!MLCamera.IsValidInstance())
-            {
-                MLCamera._instance = new MLCamera();
-            }
-        }
-
-        /// <summary>
         /// Create a preview texture.
         /// </summary>
         /// <param name="width">The width of the preview texture.</param>
@@ -1335,6 +1341,28 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(MLCameraNativeBindings.OnDataCallback))]
         private static void OnDeviceAvailableCallback(IntPtr data)
         {
+            MLThreadDispatch.ScheduleMain(() =>
+            {
+                // If OnDeviceAvailableCallback was called in succession before the re-connect sequence was completed,
+                // multiple instances of this lambda would be queued. So use wasDeviceDisconnected to gate
+                // any attempts at reconnection.
+                if (Instance.wasDeviceDisconnected)
+                {
+                    // Tear everything down and set flags for what was enabled while doing so.
+                    // We don't necessarily need to stop any ongoing capture, because it has
+                    // already been stopped internally on the platform. We just need to
+                    // call MLCameraDisconnect() and have the correct Unity side flags to be
+                    // set so we know what to resume on reconnection.
+                    // Without this teardown, ml_camera's state assumes its stil connected to
+                    // the camera and proceeds with a successful MLCameraConnect() but fails on
+                    // all other functions.
+                    DidNativeCallSucceed(Instance.Pause(/* flagsOnly */ true).Result, "MLCamera.Pause()");
+
+                    // Build everything back up as it was. Keep retrying connection on every OnDeviceAvailableCallback until it succeeds.
+                    Instance.wasDeviceDisconnected = !Instance.Resume(/* retry */ true).IsOk;
+                }
+            });
+
             MLThreadDispatch.Call(OnDeviceAvailable);
         }
 
@@ -1375,7 +1403,8 @@ namespace UnityEngine.XR.MagicLeap
         [AOT.MonoPInvokeCallback(typeof(MLCameraNativeBindings.OnDataCallback))]
         private static void OnDeviceDisconnectedCallback(IntPtr data)
         {
-            MLThreadDispatch.Call(OnDeviceClosed);
+            Instance.wasDeviceDisconnected = true;
+            MLThreadDispatch.Call(OnDeviceDisconnected);
         }
 
         /// <summary>
@@ -1500,18 +1529,39 @@ namespace UnityEngine.XR.MagicLeap
             if ((output.Format == OutputFormat.YUV_420_888) &&
                 (output.PlaneCount == 3))
             {
-                if (OnRawVideoFrameAvailableYUV != null)
+                if (OnRawVideoFrameAvailableYUV != null || OnRawVideoFrameAvailableYUV_NativeCallbackThread != null)
                 {
                     MLCamera.ResultExtras lambdaExtra = extra;
                     MLCamera.FrameMetadata lambdaFrameMetadata = frameMetadata;
                     YUVFrameInfo frameInfo = YUVFrameInfo.Create();
-                    frameInfo.Y.CopyFromPlane(output.Planes[(int)MLCameraNativeBindings.YUVPlaneIndex.YPlane]);
+
+                    PlaneInfo planeInfoY = output.Planes[(int)MLCameraNativeBindings.YUVPlaneIndex.YPlane];
+                    if (byteArraysYBuffer == null)
+                    {
+                        byteArraysYBuffer = CircularBuffer<byte[]>.Create(new byte[planeInfoY.Size], 3);
+                    }
+                    frameInfo.Y.CopyFromPlane(planeInfoY, byteArraysYBuffer.Get());
 
                     if (RawVideoFrameDataFilter == RawVideoFrameData.IntensityAndColor)
                     {
-                        frameInfo.U.CopyFromPlane(output.Planes[(int)MLCameraNativeBindings.YUVPlaneIndex.UPlane]);
-                        frameInfo.V.CopyFromPlane(output.Planes[(int)MLCameraNativeBindings.YUVPlaneIndex.VPlane]);
+                        PlaneInfo planeInfoU = output.Planes[(int)MLCameraNativeBindings.YUVPlaneIndex.UPlane];
+                        if (byteArraysUBuffer == null)
+                        {
+                            byteArraysUBuffer = CircularBuffer<byte[]>.Create(new byte[planeInfoU.Size], 3);
+                        }
+
+                        frameInfo.U.CopyFromPlane(planeInfoU, byteArraysUBuffer.Get());
+
+                        PlaneInfo planeInfoV = output.Planes[(int)MLCameraNativeBindings.YUVPlaneIndex.VPlane];
+                        if (byteArraysVBuffer == null)
+                        {
+                            byteArraysVBuffer = CircularBuffer<byte[]>.Create(new byte[planeInfoV.Size], 3);
+                        }
+
+                        frameInfo.V.CopyFromPlane(planeInfoV, byteArraysVBuffer.Get());
                     }
+
+                    OnRawVideoFrameAvailableYUV_NativeCallbackThread(extra, frameInfo, frameMetadata);
 
                     QueueRawVideoFrameCallback(() =>
                     {
@@ -1530,53 +1580,15 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
-        /// Get the intrinsic calibration parameters.
-        /// </summary>
-        /// <param name="cameraId">The id of the camera.</param>
-        /// <param name="outParameters">The intrinsic calibration parameters.</param>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if obtained result extras successfully.
-        /// MLResult.Result will be <c>MLResult.Code.InvalidParam</c> if failed to obtain result extras due to invalid input parameter.
-        /// </returns>
-        private MLResult InternalGetIntrinsicCalibrationParameters(MLCVCameraNativeBindings.CameraID cameraId, out MLCamera.IntrinsicCalibrationParameters outParameters)
-        {
-            outParameters = new MLCamera.IntrinsicCalibrationParameters();
-
-            MLCVCameraNativeBindings.IntrinsicCalibrationParametersNative internalParameters =
-                MLCVCameraNativeBindings.IntrinsicCalibrationParametersNative.Create();
-
-            MLResult.Code resultCode = MLCVCameraNativeBindings.MLCVCameraGetIntrinsicCalibrationParameters(this.cameraCVTrackerHandle, cameraId, ref internalParameters);
-
-            MLResult parametersResult = MLResult.Create(resultCode);
-            if (!parametersResult.IsOk)
-            {
-                MLPluginLog.ErrorFormat("MLCamera.InternalGetIntrinsicCalibrationParameters failed to get camera parameters. Reason: {0}", parametersResult);
-            }
-            else
-            {
-                outParameters.Width = internalParameters.Width;
-                outParameters.Height = internalParameters.Height;
-                outParameters.FocalLength = new Vector2(internalParameters.FocalLength.X, internalParameters.FocalLength.Y);
-                outParameters.PrincipalPoint = new Vector2(internalParameters.PrincipalPoint.X, internalParameters.PrincipalPoint.Y);
-                outParameters.FOV = internalParameters.FOV;
-                outParameters.Distortion = new double[internalParameters.Distortion.Length];
-                internalParameters.Distortion.CopyTo(outParameters.Distortion, 0);
-            }
-
-            return parametersResult;
-        }
-
-        /// <summary>
         /// Pause the camera capture.
         /// </summary>
+        /// <param name="flagsOnly">Set to true if you only need to store the current state of camera captures from Unity's perspective without actually invoking platform functions. False by default.</param>
         /// <returns>
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
         /// </returns>
-        private MLResult Pause()
+        private MLResult Pause(bool flagsOnly = false)
         {
-            this.resumeConnect = this.resumePreview = false;
-
             MLResult result;
 
             if (this.cameraConnectionEstablished)
@@ -1586,15 +1598,23 @@ namespace UnityEngine.XR.MagicLeap
                 {
                     this.resumePreview = true;
 
-                    result = StopPreview();
-                    if (!result.IsOk)
+                    if (!flagsOnly)
                     {
-                        MLPluginLog.ErrorFormat("MLCamera.Pause failed to stop camera preview. Reason: {0}", result);
-                        return result;
+                        // No need to return result on failure, from here. App is pausing, we need to disconnect the camera no matter what.
+                        StopPreview();
+                    }
+                }
+                else if (this.capturingRawVideo)
+                {
+                    this.resumeRawVideoCapture = true;
+                    if (!flagsOnly)
+                    {
+                        // No need to return result on failure, from here. App is pausing, we need to disconnect the camera no matter what.
+                        StopVideoCapture();
                     }
                 }
 
-                result = Disconnect();
+                result = InternalDisconnect(flagsOnly);
                 if (!result.IsOk)
                 {
                     MLPluginLog.ErrorFormat("MLCamera.Pause failed to disconnect camera. Reason: {0}", result);
@@ -1608,6 +1628,7 @@ namespace UnityEngine.XR.MagicLeap
         /// <summary>
         /// Resume the camera capture.
         /// </summary>
+        /// <param name="retry">Set the 'resume' flags based on their success, to leave room for retries in case of failures. False by default.</param>
         /// <returns>
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
         /// MLResult.Result will be <c>MLResult.Code.MediaGenericUnexpectedNull</c> if failed to connect to camera device due to null pointer.
@@ -1617,13 +1638,14 @@ namespace UnityEngine.XR.MagicLeap
         /// MLResult.Result will be <c>MLResult.Code.AllocFailed</c> if failed to allocate memory.
         /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if necessary privilege is missing.
         /// </returns>
-        private MLResult Resume()
+        private MLResult Resume(bool retry = false)
         {
             MLResult result;
 
             if (this.resumeConnect)
             {
                 result = Connect();
+                this.resumeConnect = retry && !result.IsOk;
                 if (!result.IsOk)
                 {
                     MLPluginLog.ErrorFormat("MLCamera.Resume failed to connect camera. Reason: {0}", result);
@@ -1633,6 +1655,17 @@ namespace UnityEngine.XR.MagicLeap
                 if (this.resumePreview)
                 {
                     result = StartPreview(this.previewTexture2D);
+                    this.resumePreview = retry && !result.IsOk;
+                    if (!result.IsOk)
+                    {
+                        MLPluginLog.ErrorFormat("MLCamera.Resume failed to start camera preview. Reason: {0}", result);
+                        return result;
+                    }
+                }
+                else if (this.resumeRawVideoCapture)
+                {
+                    result = StartRawVideoCapture();
+                    this.resumeRawVideoCapture = retry && !result.IsOk;
                     if (!result.IsOk)
                     {
                         MLPluginLog.ErrorFormat("MLCamera.Resume failed to start camera preview. Reason: {0}", result);
@@ -1760,29 +1793,53 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
+        /// Schedule camera connection on the worker thread and follow that up by invoking the OnCameraConnected event on the main thread.
+        /// </summary>
+        private void InternalConnectAsync()
+        {
+            MLThreadDispatch.ScheduleWork(() =>
+            {
+                MLResult result = InternalConnect();
+                MLThreadDispatch.ScheduleMain(() =>
+                {
+                    OnCameraConnected(result);
+                });
+
+                // return true here instead of result.isOk because a false here would requeue this task
+                // and that decision is best left to the caller.
+                return true;
+            });
+        }
+
+        /// <summary>
         /// Disconnect the camera.
         /// </summary>
+        /// <param name="flagsOnly">Set to true if you only need to disconect the camera and not stop any ongoing captuers. Useful when disconnecting due to internal errors. False by default.</param>
         /// <returns>
         /// MLResult.Result will be <c>MLResult.Code.Ok</c> if completed successfully.
         /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
         /// MLResult.Result will be <c>MLResult.Code.PrivilegeDenied</c> if a required permission is missing.
         /// </returns>
-        private MLResult InternalDisconnect()
+        private MLResult InternalDisconnect(bool flagsOnly = false)
         {
             var result = MLResult.Create(MLResult.Code.Ok, "No camera connection established");
 
             if (this.cameraConnectionEstablished)
             {
-                if (this.Previewing)
+                if (this.Previewing && !flagsOnly)
                 {
                     this.InternalStopPreview();
                 }
 
-                if (this.captureVideoStarted)
+                this.Previewing = false;
+
+                if (this.captureVideoStarted && !flagsOnly)
                 {
                     // TODO: check for result?
                     this.InternalStopVideoCapture();
                 }
+
+                this.captureVideoStarted = false;
 
                 result = this.DisconnectNative();
 
@@ -1792,6 +1849,28 @@ namespace UnityEngine.XR.MagicLeap
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Schedule camera disconnect on the worker thread and follow that up by invoking the OnCameraDisconnected event on the main thread.
+        /// </summary>
+        private void InternalDisconnectAsync()
+        {
+            cameraDisconnectWaitHandle.Reset();
+            MLThreadDispatch.ScheduleWork(() =>
+            {
+                MLResult result = InternalDisconnect();
+                cameraDisconnectWaitHandle.Set();
+
+                MLThreadDispatch.ScheduleMain(() =>
+                {
+                    OnCameraDisconnected(result);
+                });
+
+                // return true here instead of result.isOk because a false here would requeue this task
+                // and that decision is best left to the caller.
+                return true;
+            });
         }
 
         /// <summary>
@@ -1946,36 +2025,6 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
-        /// Get the frame pose.
-        /// </summary>
-        /// <param name="cameraId">The camera id.</param>
-        /// <param name="vcamTimestamp">The timestamp of the frame pose.</param>
-        /// <param name="outTransform">The transform of the frame pose.</param>
-        /// <returns>
-        /// MLResult.Result will be <c>MLResult.Code.Ok</c> if successful.
-        /// MLResult.Result will be <c>MLResult.Code.UnspecifiedFailure</c> if failed due to internal error.
-        /// </returns>
-        private MLResult InternalGetFramePose(MLCVCameraNativeBindings.CameraID cameraId, ulong vcamTimestamp, out Matrix4x4 outTransform)
-        {
-            MagicLeapNativeBindings.MLTransform outInternalTransform = new MagicLeapNativeBindings.MLTransform();
-
-            MLResult.Code resultCode = MLCVCameraNativeBindings.MLCVCameraGetFramePose(this.cameraCVTrackerHandle, this.headTrackerHandle, cameraId, vcamTimestamp, ref outInternalTransform);
-            MLResult poseResult = MLResult.Create(resultCode);
-
-            if (!poseResult.IsOk)
-            {
-                MLPluginLog.ErrorFormat("MLCamera.InternalGetFramePose failed to get camera frame pose. Reason: {0}", poseResult);
-                outTransform = new Matrix4x4();
-            }
-            else
-            {
-                outTransform = MLConvert.ToUnity(outInternalTransform);
-            }
-
-            return poseResult;
-        }
-
-        /// <summary>
         /// Prepare the camera capture.
         /// </summary>
         /// <param name="captureType">The type of capture.</param>
@@ -2087,6 +2136,22 @@ namespace UnityEngine.XR.MagicLeap
         }
 
         /// <summary>
+        /// Schedule to start video capture on the worker thread and follow that up by invoking the OnCameraCaptureStarted event on the main thread.
+        /// </summary>
+        private void InternalStartVideoCaptureAsync(string filePath)
+        {
+            MLThreadDispatch.ScheduleWork(() =>
+            {
+                MLResult result = InternalStartVideoCapture(filePath);
+                MLThreadDispatch.ScheduleMain(() =>
+                {
+                    OnCameraCaptureStarted(result, filePath);
+                });
+                return true;
+            });
+        }
+
+        /// <summary>
         /// Start raw video capture.
         /// </summary>
         /// <returns>
@@ -2122,6 +2187,7 @@ namespace UnityEngine.XR.MagicLeap
                         else
                         {
                             this.captureVideoStarted = true;
+                            this.capturingRawVideo = true;
                         }
                     }
                     else
@@ -2142,6 +2208,22 @@ namespace UnityEngine.XR.MagicLeap
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Schedule to start raw video capture on the worker thread and follow that up by invoking the OnCameraCaptureStarted event on the main thread.
+        /// </summary>
+        private void InternalStartRawVideoCaptureAsync()
+        {
+            MLThreadDispatch.ScheduleWork(() =>
+            {
+                MLResult result = InternalStartRawVideoCapture();
+                MLThreadDispatch.ScheduleMain(() =>
+                {
+                    OnCameraCaptureStarted(result, null);
+                });
+                return true;
+            });
         }
 
         /// <summary>
@@ -2166,6 +2248,7 @@ namespace UnityEngine.XR.MagicLeap
                 }
 
                 this.captureVideoStarted = false;
+                this.capturingRawVideo = false;
             }
             else
             {
@@ -2175,6 +2258,22 @@ namespace UnityEngine.XR.MagicLeap
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Schedule to stop video capture on the worker thread and follow that up by invoking the OnCameraCaptureCompleted event on the main thread.
+        /// </summary>
+        private void InternalStopVideoCaptureAsync()
+        {
+            MLThreadDispatch.ScheduleWork(() =>
+            {
+                MLResult result = InternalStopVideoCapture();
+                MLThreadDispatch.ScheduleMain(() =>
+                {
+                    OnCameraCaptureCompleted(result);
+                });
+                return true;
+            });
         }
 
         /// <summary>
@@ -2456,6 +2555,12 @@ namespace UnityEngine.XR.MagicLeap
             public byte[] Data;
 
             /// <summary>
+            /// Pointer to the unmanaged memory where the actual image data is found.
+            /// Only valid when received via the OnRawVideoFrameAvailableYUV_NativeCallbackThread event.
+            /// </summary>
+            public IntPtr DataPtr;
+
+            /// <summary>
             /// Number of bytes in the image output data
             /// </summary>
             public uint Size;
@@ -2482,15 +2587,20 @@ namespace UnityEngine.XR.MagicLeap
             /// Copy the properties from a PlaneInfo structure.
             /// </summary>
             /// <param name="plane">The PlaneInfo to copy.</param>
-            internal void CopyFromPlane(MLCamera.PlaneInfo plane)
+            internal void CopyFromPlane(MLCamera.PlaneInfo plane, byte[] byteArrayToUse = null)
             {
                 this.Width = plane.Width;
                 this.Height = plane.Height;
                 this.Stride = plane.Stride;
                 this.BytesPerPixel = plane.BytesPerPixel;
                 this.Size = plane.Size;
-                this.Data = new byte[this.Stride * this.Height];
-                Marshal.Copy(plane.Data, this.Data, 0, this.Data.Length);
+                this.DataPtr = plane.Data;
+                if (byteArrayToUse == null)
+                {
+                   byteArrayToUse = new byte[plane.Stride * plane.Height];
+                }
+                this.Data = byteArrayToUse;
+                Marshal.Copy(plane.Data, this.Data, 0, byteArrayToUse.Length);
                 this.IsValid = true;
             }
         }
@@ -2600,44 +2710,6 @@ namespace UnityEngine.XR.MagicLeap
                     ExposureTimeNs = 0
                 };
             }
-        }
-
-        /// <summary>
-        /// Contains camera intrinsic parameters.
-        /// </summary>
-        public struct IntrinsicCalibrationParameters
-        {
-            /// <summary>
-            /// Camera width.
-            /// </summary>
-            public uint Width;
-
-            /// <summary>
-            /// Camera height.
-            /// </summary>
-            public uint Height;
-
-            /// <summary>
-            /// Camera focal length.
-            /// </summary>
-            public Vector2 FocalLength;
-
-            /// <summary>
-            /// Camera principle point.
-            /// </summary>
-            public Vector2 PrincipalPoint;
-
-            /// <summary>
-            /// Field of view.
-            /// </summary>
-            public float FOV;
-
-            /// <summary>
-            /// Distortion Coefficients.
-            /// The distortion coefficients are in the following order:
-            /// [k1, k2, p1, p2, k3]
-            /// </summary>
-            public double[] Distortion;
         }
 
         /// <summary>

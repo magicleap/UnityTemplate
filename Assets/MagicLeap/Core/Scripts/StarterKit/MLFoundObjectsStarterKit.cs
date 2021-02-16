@@ -11,12 +11,11 @@
 // %BANNER_END%
 
 #if PLATFORM_LUMIN
+using UnityEngine;
+using UnityEngine.XR.MagicLeap;
+
 namespace MagicLeap.Core.StarterKit
 {
-    using System.Collections.Generic;
-    using UnityEngine;
-    using UnityEngine.XR.MagicLeap;
-
     /// <summary>
     /// Starterkit class for practical use of MLFoundObjects.
     /// </summary>
@@ -34,8 +33,11 @@ namespace MagicLeap.Core.StarterKit
         /// <summary>
         /// Used to set IsQuerying to false.
         /// </summary>
-        private static MLFoundObjects.QueryResultsDelegate queryCallback = (MLFoundObjects.FoundObject foundObject, List<KeyValuePair<string, string>> properties) => { IsQuerying = false; };
+        private static MLFoundObjects.QueryResultsDelegate queryCallback = (MLResult result, MLFoundObjects.FoundObject[] foundObjects) => { IsQuerying = false; };
 
+        /// <summary>
+        /// Used to cache the last MLResult.
+        /// </summary>
         private static MLResult result;
 
         /// <summary>
@@ -44,20 +46,12 @@ namespace MagicLeap.Core.StarterKit
         public static MLResult Start()
         {
             #if PLATFORM_LUMIN
-            result = MLPrivilegesStarterKit.Start();
-            if (!result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLFoundObjectsStarterKit failed when calling MLPrivilegesStarterKit.Start. Reason: {0}", result);
-                return result;
-            }
-
             result = MLPrivilegesStarterKit.RequestPrivileges(MLPrivileges.Id.ObjectData);
             if (result.Result != MLResult.Code.PrivilegeGranted)
             {
                 Debug.LogErrorFormat("Error: MLFoundObjectsStarterKit failed requesting privileges. Reason: {0}", result);
                 return result;
             }
-            MLPrivilegesStarterKit.Stop();
 
             result = MLFoundObjects.Start();
             if (!result.IsOk)
@@ -82,9 +76,9 @@ namespace MagicLeap.Core.StarterKit
         /// <summary>
         /// Function used to query for found objects present in the real world.
         /// </summary>
-        /// <param name="parameters">The parameters to use for this query.</param>
+        /// <param name="queryFilter">Filter used to customize query results.</param>
         /// <param name="callback">The function to call when the query is done.</param>
-        public static MLResult QueryFoundObjects(MLFoundObjects.QueryResultsDelegate callback)
+        public static MLResult QueryFoundObjectsAsync(MLFoundObjects.Query.Filter queryFilter, MLFoundObjects.QueryResultsDelegate callback)
         {
             if (MLFoundObjects.IsStarted)
             {
@@ -94,7 +88,7 @@ namespace MagicLeap.Core.StarterKit
                 }
 
                 callback += queryCallback;
-                result = MLFoundObjects.GetObjects(callback);
+                result = MLFoundObjects.GetObjectsAsync(queryFilter, callback);
                 IsQuerying = result.IsOk;
 
                 if (!result.IsOk)

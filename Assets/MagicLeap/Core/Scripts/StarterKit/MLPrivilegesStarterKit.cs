@@ -11,6 +11,7 @@
 // %BANNER_END%
 
 using System;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.MagicLeap;
 
@@ -28,15 +29,11 @@ namespace MagicLeap.Core.StarterKit
         /// <summary>
         /// Starts up MLPrivileges.
         /// </summary>
+        [System.Obsolete("MLPrivilegesStarterKit API is now automatically started and stopped. There is no need to call the Start() and Stop() methods for this API, and they are now deprecated. See https://developer.magicleap.com/learn/guides/auto-api-changes for more info.", false)]
         public static MLResult Start()
         {
             #if PLATFORM_LUMIN
-            _result = MLPrivileges.Start();
-
-            if (!_result.IsOk)
-            {
-                Debug.LogErrorFormat("Error: MLPrivilegesStarterKit failed starting MLPrivileges. Reason: {0}", _result);
-            }
+            _result = MLResult.Create(MLResult.Code.Ok);
             #endif
 
             return _result;
@@ -45,14 +42,9 @@ namespace MagicLeap.Core.StarterKit
         /// <summary>
         /// Stops MLPrivileges.
         /// </summary>
+        [System.Obsolete("MLPrivilegesStarterKit API is now automatically started and stopped. There is no need to call the Start() and Stop() methods for this API, and they are now deprecated. See https://developer.magicleap.com/learn/guides/auto-api-changes for more info.", false)]
         public static void Stop()
         {
-            #if PLATFORM_LUMIN
-            if (MLPrivileges.IsStarted)
-            {
-                MLPrivileges.Stop();
-            }
-            #endif
         }
 
         /// <summary>
@@ -62,27 +54,19 @@ namespace MagicLeap.Core.StarterKit
         public static MLResult RequestPrivileges(params MLPrivileges.Id[] privileges)
         {
             #if PLATFORM_LUMIN
-            if (MLPrivileges.IsStarted)
+            foreach (MLPrivileges.Id privilege in privileges)
             {
-                foreach (MLPrivileges.Id privilege in privileges)
+                _result = CheckPrivilege(privilege);
+                if (_result.Result == MLResult.Code.PrivilegeGranted)
                 {
-                    _result = CheckPrivilege(privilege);
-                    if (_result.Result == MLResult.Code.PrivilegeGranted)
-                    {
-                        continue;
-                    }
-
-                    _result = MLPrivileges.RequestPrivilege(privilege);
-                    if (_result.Result != MLResult.Code.PrivilegeGranted)
-                    {
-                        return _result;
-                    }
+                    continue;
                 }
-            }
-            else
-            {
-                Debug.LogError("Error: MLPrivilegesStarterKit.RequestPrivileges failed because MLPrivileges was not started.");
-                _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges was not started");
+
+                _result = MLPrivileges.RequestPrivilege(privilege);
+                if (_result.Result != MLResult.Code.PrivilegeGranted)
+                {
+                    return _result;
+                }
             }
             #endif
 
@@ -97,58 +81,50 @@ namespace MagicLeap.Core.StarterKit
         public static MLResult RequestPrivilegesAsync(Action<MLResult> callback, params MLPrivileges.Id[] privileges)
         {
             #if PLATFORM_LUMIN
-            if (MLPrivileges.IsStarted)
-            {
-                int numPrivilegesToRequest = privileges.Length;
+            int numPrivilegesToRequest = privileges.Length;
 
-                for(int i = 0; i < privileges.Length; i++)
+            for(int i = 0; i < privileges.Length; i++)
+            {
+                MLPrivileges.Id privilege = privileges[i];
+
+                _result = CheckPrivilege(privilege);
+                if (_result.Result == MLResult.Code.PrivilegeGranted)
                 {
-                    MLPrivileges.Id privilege = privileges[i];
-
-                    _result = CheckPrivilege(privilege);
-                    if (_result.Result == MLResult.Code.PrivilegeGranted)
+                    numPrivilegesToRequest--;
+                    if(numPrivilegesToRequest == 0)
                     {
-                        numPrivilegesToRequest--;
-                        if(numPrivilegesToRequest == 0)
-                        {
-                            callback?.Invoke(_result);
-                        }
-                        continue;
+                        callback?.Invoke(_result);
                     }
-
-                    _result = MLPrivileges.RequestPrivilegeAsync(privilege, (MLResult result, MLPrivileges.Id priv) =>
-                    {
-                        numPrivilegesToRequest--;
-
-                        if (result.Result == MLResult.Code.PrivilegeGranted)
-                        {
-                            if (numPrivilegesToRequest == 0)
-                            {
-                                callback?.Invoke(result);
-                            }
-                        }
-
-                        // Privilege was not granted
-                        else
-                        {
-                            numPrivilegesToRequest = 0;
-                            if (numPrivilegesToRequest == 0)
-                            {
-                                callback?.Invoke(result);
-                            }
-                        }
-                    });
-
-                    if (!_result.IsOk)
-                    {
-                        return _result;
-                    }
+                    continue;
                 }
-            }
-            else
-            {
-                Debug.LogError("Error: MLPrivilegesStarterKit.RequestPrivilegesAsync failed because MLPrivileges was not started.");
-                _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges was not started");
+
+                _result = MLPrivileges.RequestPrivilegeAsync(privilege, (MLResult result, MLPrivileges.Id priv) =>
+                {
+                    numPrivilegesToRequest--;
+
+                    if (result.Result == MLResult.Code.PrivilegeGranted)
+                    {
+                        if (numPrivilegesToRequest == 0)
+                        {
+                            callback?.Invoke(result);
+                        }
+                    }
+
+                    // Privilege was not granted
+                    else
+                    {
+                        numPrivilegesToRequest = 0;
+                        if (numPrivilegesToRequest == 0)
+                        {
+                            callback?.Invoke(result);
+                        }
+                    }
+                });
+
+                if (!_result.IsOk)
+                {
+                    return _result;
+                }
             }
 
             // Override result in case privilege was already granted.
@@ -168,20 +144,11 @@ namespace MagicLeap.Core.StarterKit
         public static MLResult CheckPrivilege(MLPrivileges.Id privilege)
         {
             #if PLATFORM_LUMIN
-            if (MLPrivileges.IsStarted)
-            {
-                _result = MLPrivileges.CheckPrivilege(privilege);
+            _result = MLPrivileges.CheckPrivilege(privilege);
 
-                if (_result.Result != MLResult.Code.PrivilegeGranted && _result.Result != MLResult.Code.PrivilegeNotGranted)
-                {
-                    Debug.LogErrorFormat("Error: MLPrivilegesStarterKit.CheckPrivilege failed for the privilege {0}. Reason: {1}", privilege, _result);
-                }
-            }
-
-            else
+            if (_result.Result != MLResult.Code.PrivilegeGranted && _result.Result != MLResult.Code.PrivilegeNotGranted)
             {
-                Debug.LogError("Error: MLPrivilegesStarterKit.CheckPrivilege failed because MLPrivileges was not started.");
-                _result = MLResult.Create(MLResult.Code.UnspecifiedFailure, "MLPrivileges was not started");
+                Debug.LogErrorFormat("Error: MLPrivilegesStarterKit.CheckPrivilege failed for the privilege {0}. Reason: {1}", privilege, _result);
             }
             #endif
 

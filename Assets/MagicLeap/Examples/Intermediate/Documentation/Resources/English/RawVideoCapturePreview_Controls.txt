@@ -1,0 +1,4 @@
+<color=#dbfb76><b>Bumper</b></color>
+- First Press: Start raw video capture.
+- Second Press: Stop raw video capture.
+- Repeat
