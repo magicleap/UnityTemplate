@@ -30,3 +30,9 @@ v0.25.0
 7) Make sure USB debugging is enabled between your device and computer (which requires MLDB access) and you’re allowing untrusted sources
 8) Open the `HelloCube` Scene from `Assets`>`Scenes`>`HelloCube`
 9) Navigate to https://developer.magicleap.com/learn/guides/gsg-create-your-first-unity-app
+
+## Additional Information
+
+[How to generate a ML Certificate](https://developer.magicleap.com/en-us/learn/guides/developer-certificates)
+[Enabling developer mode on your device](https://developer.magicleap.com/en-us/learn/guides/setting-up-your-device-for-development)
+[Downloading the mlsdk](https://developer.magicleap.com/en-us/learn/guides/develop-setup)
