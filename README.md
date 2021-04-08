@@ -18,9 +18,9 @@ This project is meant to provide the Magic Leap Unity SDK and examples and has b
 
 1) Using **Unity Hub**, download Unity 2020.2.x and make sure Lumin support is selected during installation.
 2) **Add** and **Open** the project using  Unity Hub.
-4) Got to **File > Build Settings** and set the build target to **Lumin**.
-5) Under **Unity Preferences**, set the **MLSDK** path. For example */Users/%YourUserName%/MagicLeap/mlsdk/0.25.0/*
-6) Got to **Project Settings > Publishing Settings** and set the **ML Certificate** . Make sure the privkey file is in the same directory.
+4) Go to **File > Build Settings** and set the build target to **Lumin**.
+5) Under **Unity Preferences**, set the **MLSDK** path. For example: */Users/**YourUserName**/MagicLeap/mlsdk/0.25.0/*
+6) Go to **Project Settings > Publishing Settings** and set the **ML Certificate** . Make sure the privkey file is in the same directory.
 7) Make sure USB debugging is enabled between your device and computer (which requires MLDB access) and you’re allowing untrusted sources
 8) Open the **HelloCube** Scene from *Assets>Scenes>HelloCube* or learn how to [Create Your First App](https://developer.magicleap.com/learn/guides/gsg-create-your-first-unity-app).   
 9) **Build and Run** the demo scene
