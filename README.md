@@ -6,21 +6,13 @@ This project is meant to provide the Magic Leap Unity SDK and examples and has b
 
 **Caution**: Do not add or change files in the *Assets/MagicLeap* folder to to prevent issues when importing new SDK versions in the future.
 
-### Unity
+### Compatible with
+- Unity Editor 2020.2
+- LuminOS 0.98.20+
+###  Packages Included
+- Magic Leap XR Plugin 6.1.0-preview.2
+- MLSDK v0.25.0
 
-2020.2.x
-
-### Magic Leap Unity Package
-
-v0.25.0
-
-### MLSDK
-
-v0.25.0
-
-### LuminOS
-
-0.98.20+
 
 ## Instructions After Downloading
 
