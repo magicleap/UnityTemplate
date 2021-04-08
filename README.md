@@ -28,6 +28,6 @@ This project is meant to provide the Magic Leap Unity SDK and examples and has b
 
 ## Additional Information
 
-[How to generate a ML Certificate](https://developer.magicleap.com/en-us/learn/guides/developer-certificates)
-[Enabling developer mode on your device](https://developer.magicleap.com/en-us/learn/guides/setting-up-your-device-for-development)
-[Downloading the mlsdk](https://developer.magicleap.com/en-us/learn/guides/develop-setup)
+[How to generate a ML Certificate](https://developer.magicleap.com/en-us/learn/guides/developer-certificates)  
+[Enabling developer mode on your device](https://developer.magicleap.com/en-us/learn/guides/setting-up-your-device-for-development)  
+[Downloading the mlsdk](https://developer.magicleap.com/en-us/learn/guides/develop-setup)  
