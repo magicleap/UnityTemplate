@@ -1,8 +1,7 @@
 # Magic Leap Unity Project Template
 
-## Project
-
-Hello, Cube!
+## Overview
+This project is meant to provide the Magic Leap Unity SDK and examples and has been configured to help the user quickly jump in start developing for the Lumin platform, whether it is via the Zero Iteration tool or deploying the app directly to the device. We recommend duplicating this project and using it as the foundation for new Magic Leap Apps. 
 
 ### Unity
 
