@@ -25,8 +25,24 @@ This project is meant to provide the Magic Leap Unity SDK and examples and has b
 8) Open the **HelloCube** scene located under `Assets/Scenes/` or learn how to [Create Your First App](https://developer.magicleap.com/learn/guides/gsg-create-your-first-unity-app).   
 9) **Build and Run** the demo scene
 
+## Using Zero Iteration  
+
+1) In Unity, delete the `Assets/Plugins/Lumin/Editor` directory if it exists.  
+2) Exit Unity.  
+3) Launch **The Lab** and open **Zero Iteration**.  
+4) Create or select a **Target** who's SDK matches the SDK that will be used in Unity.  
+5) Toggle the state to **Connected** or select the **Connect** button.  
+6) After ZI is running, launch Unity.  
+4) Go to **Magic Leap > ML Remote > Import Support Libraries**.
+5) Use Zero Iteration from Unity as normal.
+
+### Notice  
+This git project is configured to ignore the `Assets/Plugins/Lumin/Editor` folder. This is done intentionally, to avoid conflicting ZI files when developing between different operating systems and operating system versions.
+
 ## Additional Information
 
 [How to generate a ML Certificate](https://developer.magicleap.com/en-us/learn/guides/developer-certificates)  
 [Enabling developer mode on your device](https://developer.magicleap.com/en-us/learn/guides/setting-up-your-device-for-development)  
 [Downloading the mlsdk](https://developer.magicleap.com/en-us/learn/guides/develop-setup)  
+[Getting started with Zero Iteration](https://developer.magicleap.com/en-us/learn/guides/zero-iteration)  
+[Using Zero Iteration inside Unity](https://developer.magicleap.com/en-us/learn/guides/1-3-zero-iteration-unity)  
